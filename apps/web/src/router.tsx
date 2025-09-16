@@ -6,8 +6,8 @@ import { routeTree } from "./routeTree.gen";
 import "./index.css";
 
 export function createRouter() {
-	const CONVEX_URL = (import.meta as unknown as { env: Record<string, string> })
-		.env.VITE_CONVEX_URL;
+	const CONVEX_URL = process.env.VITE_CONVEX_URL;
+
 	if (!CONVEX_URL) {
 		console.error("missing envar VITE_CONVEX_URL");
 	}
