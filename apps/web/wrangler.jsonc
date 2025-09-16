@@ -1,6 +1,6 @@
 {
 	"$schema": "./node_modules/wrangler/config-schema.json",
-	"name": "orhcestrator",
+	"name": "orchestrator",
 	"main": ".output/server/index.mjs",
 	"workers_dev": false,
   "preview_urls": false,
