@@ -18,12 +18,8 @@
 	"observability": {
 		"enabled": true
 	},
- "env": {
-    "production": {
-      "vars": {
+	"vars": {
         "VITE_CONVEX_URL": "https://keen-camel-44.convex.cloud",
         "VITE_SERVER_URL": "https://keen-camel-44.convex.site"
-      }
-    }
   }
 }
