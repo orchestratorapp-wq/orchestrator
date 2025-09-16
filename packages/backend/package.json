@@ -1,0 +1,23 @@
+{
+	"name": "@orhcestrator/backend",
+	"version": "1.0.0",
+	"scripts": {
+		"dev": "convex dev",
+		"dep-upgrade": "bunx -y npm-check-updates -u",
+		"dev:setup": "convex dev --configure --until-success"
+	},
+	"author": "",
+	"license": "ISC",
+	"description": "",
+	"devDependencies": {
+		"@types/node": "24.3.3",
+		"typescript": "5.9.2"
+	},
+	"dependencies": {
+		"@auth/core": "0.37.0",
+		"@convex-dev/auth": "latest",
+		"convex": "1.27.0",
+		"convex-helpers": "^0.1.104",
+		"openai": "5.20.2"
+	}
+}

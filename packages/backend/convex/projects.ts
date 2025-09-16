@@ -1,0 +1,189 @@
+import { getAuthUserId } from "@convex-dev/auth/server";
+import { v } from "convex/values";
+import { mutation, query } from "./_generated/server";
+
+export const list = query({
+	args: {},
+	handler: async (ctx) => {
+		const userId = await getAuthUserId(ctx);
+
+		// For anonymous users, create a temporary default project
+		if (!userId) {
+			return [];
+		}
+
+		return await ctx.db
+			.query("projects")
+			.withIndex("by_user", (q) => q.eq("userId", userId))
+			.order("desc")
+			.collect();
+	},
+});
+
+export const single = query({
+	args: {
+		projectId: v.optional(v.id("projects")),
+	},
+	handler: async (ctx, args) => {
+		const userId = await getAuthUserId(ctx);
+
+		// For anonymous users, create a temporary default project
+		if (!userId) {
+			return null;
+		}
+
+		if (!args.projectId) {
+			const project = await ctx.db
+				.query("projects")
+				.withSearchIndex("search_name", (q) =>
+					q.search("name", "default").eq("userId", userId),
+				)
+				.first();
+
+			return project || "default";
+		}
+
+		const project = await ctx.db.get(args.projectId);
+
+		if (!project || project.userId !== userId) {
+			return "default";
+		}
+
+		return project;
+	},
+});
+
+export const getDefault = query({
+	args: {},
+	handler: async (ctx) => {
+		const userId = await getAuthUserId(ctx);
+
+		// For anonymous users, return a virtual default project
+		if (!userId) {
+			throw new Error("Not authenticated");
+		}
+
+		const defaultProject = await ctx.db
+			.query("projects")
+			.withIndex("by_user_default", (q) =>
+				q.eq("userId", userId).eq("isDefault", true),
+			)
+			.first();
+		return defaultProject;
+	},
+});
+
+export const ensureDefault = mutation({
+	args: {},
+	handler: async (ctx) => {
+		const userId = await getAuthUserId(ctx);
+		if (!userId) {
+			throw new Error("Not authenticated");
+		}
+
+		let defaultProject = await ctx.db
+			.query("projects")
+			.withIndex("by_user_default", (q) =>
+				q.eq("userId", userId).eq("isDefault", true),
+			)
+			.first();
+
+		if (!defaultProject) {
+			const projectId = await ctx.db.insert("projects", {
+				name: "Default Project",
+				description: "Your default project",
+				userId,
+				isDefault: true,
+			});
+			defaultProject = await ctx.db.get(projectId);
+		}
+
+		return defaultProject;
+	},
+});
+
+export const create = mutation({
+	args: {
+		name: v.string(),
+		description: v.optional(v.string()),
+	},
+	handler: async (ctx, args) => {
+		const userId = await getAuthUserId(ctx);
+		if (!userId) {
+			throw new Error("Must be logged in to create projects");
+		}
+
+		return await ctx.db.insert("projects", {
+			name: args.name,
+			description: args.description,
+			userId,
+			isDefault: false,
+		});
+	},
+});
+
+export const update = mutation({
+	args: {
+		projectId: v.id("projects"),
+		name: v.string(),
+		description: v.optional(v.string()),
+	},
+	handler: async (ctx, args) => {
+		const userId = await getAuthUserId(ctx);
+		if (!userId) {
+			throw new Error("Not authenticated");
+		}
+
+		const project = await ctx.db.get(args.projectId);
+		if (!project || project.userId !== userId) {
+			throw new Error("Project not found");
+		}
+
+		await ctx.db.patch(args.projectId, {
+			name: args.name,
+			description: args.description,
+		});
+	},
+});
+
+export const remove = mutation({
+	args: { projectId: v.id("projects") },
+	handler: async (ctx, args) => {
+		const userId = await getAuthUserId(ctx);
+		if (!userId) {
+			throw new Error("Not authenticated");
+		}
+
+		const project = await ctx.db.get(args.projectId);
+		if (!project || project.userId !== userId) {
+			throw new Error("Project not found");
+		}
+
+		if (project.isDefault) {
+			throw new Error("Cannot delete default project");
+		}
+
+		// Move all chats to default project
+		const defaultProject = await ctx.db
+			.query("projects")
+			.withIndex("by_user_default", (q) =>
+				q.eq("userId", userId).eq("isDefault", true),
+			)
+			.first();
+
+		if (defaultProject) {
+			const chats = await ctx.db
+				.query("chats")
+				.withIndex("by_project", (q) => q.eq("projectId", args.projectId))
+				.collect();
+
+			for (const chat of chats) {
+				await ctx.db.patch(chat._id, {
+					projectId: defaultProject._id,
+				});
+			}
+		}
+
+		await ctx.db.delete(args.projectId);
+	},
+});
