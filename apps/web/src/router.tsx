@@ -7,8 +7,10 @@ import "./index.css";
 
 export function createRouter() {
 	const CONVEX_URL =
-		(import.meta as unknown as { env: Record<string, string> }).env
-			.VITE_CONVEX_URL || process.env.VITE_CONVEX_URL;
+		(globalThis as unknown as Record<string, string>)?.VITE_CONVEX_URL || // CF Worker binding (if set as global)
+		(typeof import.meta !== "undefined" && import.meta.env.VITE_CONVEX_URL) || // Vite/browser
+		process.env.VITE_CONVEX_URL; // Node.js fallback (dev or edge case)
+
 	if (!CONVEX_URL) {
 		console.error("missing envar VITE_CONVEX_URL");
 	}
