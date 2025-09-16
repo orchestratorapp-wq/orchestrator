@@ -10,7 +10,7 @@ export function createRouter() {
 		(globalThis as unknown as Record<string, string>)?.VITE_CONVEX_URL || // CF Worker binding (if set as global)
 		(typeof import.meta !== "undefined" && import.meta.env.VITE_CONVEX_URL) || // Vite/browser
 		process.env.VITE_CONVEX_URL ||
-		"https://giant-squirrel-148.convex.cloud"; // Node.js fallback (dev or edge case)
+		"https://keen-camel-44.convex.cloud"; // Node.js fallback (dev or edge case)
 
 	if (!CONVEX_URL) {
 		console.error("missing envar VITE_CONVEX_URL");
