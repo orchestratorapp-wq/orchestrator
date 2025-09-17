@@ -14,7 +14,6 @@ import { useState } from "react";
 import ChatInterface from "@/components/chat-interface";
 import LexicalEditorComponent from "@/components/lexical-editor";
 import { UserProfileDropdown } from "@/components/UserProfileDropdown";
-import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/{-$project}")({
 	component: ChatComponent,
@@ -23,13 +22,18 @@ export const Route = createFileRoute("/{-$project}")({
 function ChatComponent() {
 	const { project } = Route.useParams();
 	const { signIn, signOut } = useAuthActions();
-	const [sidebarOpen, setSidebarOpen] = useState(false);
-	const user = useQuery(api.auth.loggedInUser, {});
-	const projects = useQuery(api.projects.list, {});
-	const projectPayload = useQuery(api.projects.single, {
-		projectId: project as Id<"projects">,
-	});
 	const { isLoading, isAuthenticated } = useConvexAuth();
+	const [sidebarOpen, setSidebarOpen] = useState(false);
+	const user = useQuery(api.auth.loggedInUser, isAuthenticated ? {} : "skip");
+	const projects = useQuery(api.projects.list, isAuthenticated ? {} : "skip");
+	const projectPayload = useQuery(
+		api.projects.single,
+		isAuthenticated
+			? {
+					projectId: project as Id<"projects">,
+				}
+			: "skip",
+	);
 
 	return (
 		<div>
