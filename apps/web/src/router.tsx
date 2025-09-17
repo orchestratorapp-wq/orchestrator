@@ -9,15 +9,7 @@ export function createRouter() {
 	const CONVEX_URL =
 		(globalThis as unknown as Record<string, string>)?.VITE_CONVEX_URL || // CF Worker binding (if set as global)
 		(typeof import.meta !== "undefined" && import.meta.env.VITE_CONVEX_URL) || // Vite/browser
-		process.env.VITE_CONVEX_URL ||
-		"https://keen-camel-44.convex.cloud"; // Node.js fallback (dev or edge case)
-
-	console.log(
-		"_env_",
-		(globalThis as unknown as Record<string, string>)?.VITE_CONVEX_URL || // CF Worker binding (if set as global)
-			(typeof import.meta !== "undefined" && import.meta.env.VITE_CONVEX_URL) || // Vite/browser
-			process.env.VITE_CONVEX_URL,
-	);
+		process.env.VITE_CONVEX_URL;
 
 	if (!CONVEX_URL) {
 		console.error("missing envar VITE_CONVEX_URL");
