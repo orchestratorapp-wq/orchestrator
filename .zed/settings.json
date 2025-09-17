@@ -15,5 +15,13 @@
         "{buffer_path}"
       ]
     }
+  },
+  "context_servers": {
+    "convex": {
+      "source": "custom",
+      "command": "bunx",
+      "args": ["-y", "convex@latest", "mcp", "start"],
+      "env": {}
+    }
   }
 }
