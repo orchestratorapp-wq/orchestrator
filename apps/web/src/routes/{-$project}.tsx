@@ -14,6 +14,7 @@ import { useState } from "react";
 import ChatInterface from "@/components/chat-interface";
 import LexicalEditorComponent from "@/components/lexical-editor";
 import { UserProfileDropdown } from "@/components/UserProfileDropdown";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/{-$project}")({
 	component: ChatComponent,
