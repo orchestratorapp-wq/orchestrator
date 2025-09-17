@@ -177,7 +177,7 @@ function ChatComponent() {
 				<div className="xl:pr-96">
 					<div className="relative h-screen w-full pt-16 lg:pt-0">
 						{user ? null : user === undefined ? (
-							<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+							<div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50">
 								<div className="flex w-96 max-w-full flex-col items-center rounded-lg border border-gray-200 bg-white p-8 shadow-lg dark:border-gray-700 dark:bg-gray-800">
 									<h2 className="text-center font-bold text-2xl text-gray-900 dark:text-white">
 										Loading…
@@ -185,7 +185,7 @@ function ChatComponent() {
 								</div>
 							</div>
 						) : (
-							<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+							<div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50">
 								<div className="flex w-96 max-w-full flex-col items-center rounded-lg border border-gray-200 bg-white p-8 shadow-lg dark:border-gray-700 dark:bg-gray-800">
 									<h2 className="mb-4 text-center font-bold text-2xl text-gray-900 dark:text-white">
 										Authenticate
