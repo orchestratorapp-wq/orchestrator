@@ -9,7 +9,7 @@ import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
 import { api } from "@orhcestrator/backend/convex/_generated/api";
 import type { Id } from "@orhcestrator/backend/convex/_generated/dataModel";
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "convex/react";
+import { useConvexAuth, useQuery } from "convex/react";
 import { useState } from "react";
 import ChatInterface from "@/components/chat-interface";
 import LexicalEditorComponent from "@/components/lexical-editor";
@@ -29,6 +29,7 @@ function ChatComponent() {
 	const projectPayload = useQuery(api.projects.single, {
 		projectId: project as Id<"projects">,
 	});
+	const { isLoading, isAuthenticated } = useConvexAuth();
 
 	return (
 		<div>
@@ -198,7 +199,7 @@ function ChatComponent() {
 			<main className="lg:pl-72">
 				<div className="xl:pr-96">
 					<div className="relative h-screen w-full pt-16 lg:pt-0">
-						{user ? null : user === undefined ? (
+						{isAuthenticated ? null : isLoading ? (
 							<div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50">
 								<div className="flex w-96 max-w-full flex-col items-center rounded-lg border border-gray-200 bg-white p-8 shadow-lg dark:border-gray-700 dark:bg-gray-800">
 									<h2 className="text-center font-bold text-2xl text-gray-900 dark:text-white">
