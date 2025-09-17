@@ -103,6 +103,30 @@ function ChatComponent() {
 											)}
 										</ul>
 									</li>
+									<li className="-mx-2 mt-auto">
+										<ul className="-mx-2 space-y-1">
+											<li>
+												<a
+													href="https://orchestrator.to/privacy"
+													target="_blank"
+													className="group flex gap-x-3 rounded-md p-2 font-semibold text-gray-700 text-sm/6 hover:bg-gray-50 hover:text-indigo-600 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white"
+													rel="noopener"
+												>
+													Privacy Policy
+												</a>
+											</li>
+											<li>
+												<a
+													href="https://orchestrator.to/terms"
+													target="_blank"
+													className="group flex gap-x-3 rounded-md p-2 font-semibold text-gray-700 text-sm/6 hover:bg-gray-50 hover:text-indigo-600 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white"
+													rel="noopener"
+												>
+													Terms of Service
+												</a>
+											</li>
+										</ul>
+									</li>
 								</ul>
 							</nav>
 						</div>
