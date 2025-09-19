@@ -11,8 +11,12 @@ import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { HeadingNode, QuoteNode } from "@lexical/rich-text";
 import { TableCellNode, TableNode, TableRowNode } from "@lexical/table";
-import type { LexicalEditor } from "lexical";
-import { useEffect, useState } from "react";
+import type {
+	EditorState,
+	LexicalEditor,
+	SerializedEditorState,
+} from "lexical";
+import { useEffect, useRef, useState } from "react";
 
 interface LexicalEditorProps {
 	content?: string; // JSON string of lexical state
@@ -51,26 +55,44 @@ export default function LexicalEditorComponent({
 	content,
 }: LexicalEditorProps) {
 	const [editor, setEditor] = useState<LexicalEditor | null>(null);
+	const prevJsonRef = useRef<SerializedEditorState | null>(null);
+	const [flashClass, setFlashClass] = useState("");
+
 	useEffect(() => {
 		if (editor && content) {
+			let parsedState: EditorState | null = null;
 			try {
 				// Try to parse as Lexical JSON
-				const parsedState = editor.parseEditorState(content);
+				parsedState = editor.parseEditorState(content);
 				editor.setEditorState(parsedState);
-			} catch {
+			} catch (_error) {
 				try {
 					editor.update(() => {
 						$convertFromMarkdownString(content, TRANSFORMERS);
 					});
 				} catch {}
 			}
+
+			const newObj: SerializedEditorState = editor.getEditorState().toJSON();
+
+			if (
+				prevJsonRef.current &&
+				JSON.stringify(newObj) !== JSON.stringify(prevJsonRef.current)
+			) {
+				setFlashClass("border-l-2 border-yellow-100");
+				setTimeout(() => setFlashClass(""), 200);
+			}
+
+			prevJsonRef.current = newObj;
 		}
 	}, [editor, content]);
 
 	return (
 		<div className="h-full w-full p-4">
 			<LexicalComposer initialConfig={editorConfig}>
-				<div className="relative min-h-[400px] p-4">
+				<div
+					className={`relative min-h-[400px] p-4 ${flashClass} transition-all duration-200`}
+				>
 					<RichTextPlugin
 						contentEditable={
 							<ContentEditable className="min-h-[350px] outline-none" />

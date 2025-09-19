@@ -84,6 +84,7 @@ export const composeMessage = action({
 
 		return ctx.runAction(internal.messages.generateResponse, {
 			chatId: sendPayload.resolvedChatId,
+			projectId: args.projectId,
 			messageId: sendPayload.placeholderMessageId,
 			userId,
 		});
@@ -177,6 +178,7 @@ export const send = internalMutation({
 			content: "Generating response...",
 			role: "assistant",
 			meta: {
+				type: "temporary",
 				last_message: messageId,
 			},
 		});
@@ -193,6 +195,7 @@ export const send = internalMutation({
 export const generateResponse = internalAction({
 	args: {
 		chatId: v.id("chats"),
+		projectId: v.id("projects"),
 		messageId: v.id("messages"),
 		userId: v.id("users"),
 	},
@@ -216,6 +219,7 @@ export const generateResponse = internalAction({
 		// Get chat and project for context
 		const data = await ctx.runQuery(internal.messages.getChatAndProject, {
 			chatId: args.chatId,
+			projectId: args.projectId,
 		});
 		if (!data) {
 			throw new Error("Chat not found");
@@ -300,7 +304,7 @@ ${projectInstructions}`,
 				const responseContent = parsed.response || content;
 				const projectUpdate = parsed.project_update || {};
 
-				console.log({ projectUpdate, responseContent });
+				console.log({ projectUpdate, responseContent, project });
 
 				if (!project) {
 					if (typeof projectUpdate.name === "string") {
@@ -377,14 +381,11 @@ export const saveResponse = mutation({
 });
 
 export const getChatAndProject = internalQuery({
-	args: { chatId: v.id("chats") },
+	args: { chatId: v.id("chats"), projectId: v.optional(v.id("projects")) },
 	handler: async (ctx, args) => {
 		const chat = await ctx.db.get(args.chatId);
-		if (!chat) return null;
-		const project =
-			typeof chat.projectId === "string"
-				? null
-				: await ctx.db.get(chat.projectId);
+		const project = !args.projectId ? null : await ctx.db.get(args.projectId);
+
 		return { chat, project };
 	},
 });
