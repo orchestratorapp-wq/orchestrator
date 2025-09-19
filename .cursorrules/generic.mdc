@@ -1,0 +1,6 @@
+---
+description: Global rules
+globs: *.ts,*.tsx,*.js,*.jsx
+---
+
+never ever use any or mock typescript types or invented random types

@@ -3,13 +3,19 @@ import { v } from "convex/values";
 import OpenAI from "openai";
 import { api, internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
-import { action, mutation, query } from "./_generated/server";
+import {
+	internalAction,
+	internalQuery,
+	mutation,
+	query,
+} from "./_generated/server";
 
 export const list = query({
 	args: { chatId: v.union(v.id("chats"), v.literal("default")) },
 	handler: async (ctx, args) => {
 		const userId = await getAuthUserId(ctx);
 		if (!userId) {
+			console.log("_no_user_id_chat_list_", args);
 			return [];
 		}
 
@@ -22,6 +28,7 @@ export const list = query({
 				)
 				.first();
 			if (!defaultProject) {
+				console.log("_no_default_project_", args);
 				return [];
 			}
 			const chat = await ctx.db
@@ -29,6 +36,7 @@ export const list = query({
 				.withIndex("by_project", (q) => q.eq("projectId", defaultProject._id))
 				.first();
 			if (!chat) {
+				console.log("_no_chat_", chat, defaultProject);
 				return [];
 			}
 			chatId = chat._id;
@@ -36,14 +44,16 @@ export const list = query({
 
 		const chat: Doc<"chats"> | null = await ctx.db.get(chatId);
 		if (!chat) {
+			console.log("_no_chat_", chatId);
 			return [];
 		}
 
 		if (chat.userId !== userId) {
+			console.log("_wrong_chat_user_", userId);
 			return [];
 		}
 
-		return await ctx.db
+		return ctx.db
 			.query("messages")
 			.withIndex("by_chat", (q) => q.eq("chatId", chatId))
 			.order("asc")
@@ -137,17 +147,25 @@ export const send = mutation({
 			role: "user",
 		});
 
-		// Schedule AI response
-		await ctx.scheduler.runAfter(0, api.messages.generateResponse, {
+		// Insert placeholder assistant message
+		const placeholderMessageId = await ctx.db.insert("messages", {
 			chatId: resolvedChatId,
+			content: "Generating response...",
+			role: "assistant",
+		});
+
+		// Schedule AI response
+		await ctx.scheduler.runAfter(0, internal.messages.generateResponse, {
+			chatId: resolvedChatId,
+			messageId: placeholderMessageId,
 		});
 
 		return messageId;
 	},
 });
 
-export const generateResponse = action({
-	args: { chatId: v.id("chats") },
+export const generateResponse = internalAction({
+	args: { chatId: v.id("chats"), messageId: v.id("messages") },
 	handler: async (ctx, args) => {
 		const openai = new OpenAI({
 			baseURL: process.env.CONVEX_OPENAI_BASE_URL,
@@ -155,7 +173,7 @@ export const generateResponse = action({
 		});
 
 		// Get chat history
-		const messages = await ctx.runQuery(api.messages.list, {
+		const messages = await ctx.runQuery(internal.messages.listChat, {
 			chatId: args.chatId,
 		});
 
@@ -165,21 +183,55 @@ export const generateResponse = action({
 			content: msg.content,
 		}));
 
+		// Get chat and project for context
+		const data = await ctx.runQuery(internal.messages.getChatAndProject, {
+			chatId: args.chatId,
+		});
+		if (!data) {
+			throw new Error("Chat not found");
+		}
+		const { chat, project: rawProject } = data;
+		const project = rawProject as Doc<"projects"> | null;
+		const currentLexicalState = project?.lexicalState || "";
+
 		const systemPrompts = await ctx.runQuery(internal.prompts.getSystemPrompts);
 
-		// Add system prompt for daily planning
+		// Base system prompt for daily planning
+		const baseContent =
+			systemPrompts?.content ||
+			"You are an AI assistant that helps create beautiful daily plans. When responding, consider how your response could be structured as a well-organized daily plan. Provide clear, actionable information that can be easily converted into structured daily tasks, schedules, goals, and reflections. Structure your responses with clear sections like Morning Routine, Work Tasks, Evening Wind-down, Goals for Tomorrow, etc. Focus on creating meaningful, balanced daily plans that promote productivity and well-being.";
+
+		// Add project-specific instructions if a project exists
+		const projectInstructions = project
+			? `Your current knowledge of the project "${project.name}" is: ${currentLexicalState}
+
+Additionally, if you have updates to the project's name or lexical state (representing the entire project's plan or structure), include them in your response as JSON.
+
+Your output should be a JSON object with the following structure:
+
+{
+  "response": "The user-visible response content here",
+  "project_update": {
+    "name": "New project name if changed, otherwise omit this key",
+    "lexical_state": "Updated lexical state for the entire project in JSON format if changed, otherwise omit this key"
+  }
+}
+
+The project_update object should only be included if there are updates. The response should be the conversational reply the user sees. Only output valid JSON.`
+			: "";
+
+		// Add system prompt for daily planning with project context
 		const systemPrompt = {
 			role: "system" as const,
-			content:
-				systemPrompts?.content ||
-				"You are an AI assistant that helps create beautiful daily plans. When responding, consider how your response could be structured as a well-organized daily plan. Provide clear, actionable information that can be easily converted into structured daily tasks, schedules, goals, and reflections. Structure your responses with clear sections like Morning Routine, Work Tasks, Evening Wind-down, Goals for Tomorrow, etc. Focus on creating meaningful, balanced daily plans that promote productivity and well-being.",
+			content: `${baseContent}
+
+${projectInstructions}`,
 		};
 
 		try {
 			const response = await openai.chat.completions.create({
 				model: "gpt-5",
 				messages: [systemPrompt, ...conversation],
-				temperature: 0.7,
 			});
 
 			const content = response.choices[0]?.message?.content;
@@ -187,49 +239,37 @@ export const generateResponse = action({
 				throw new Error("No response from AI");
 			}
 
-			// Generate Lexical state from AI response
-			const lexicalState = await generateLexicalState(content);
-
-			// Save AI response
-			await ctx.runMutation(api.messages.saveResponse, {
-				chatId: args.chatId,
-				content,
-				lexicalState,
-			});
+			// Parse AI response for project updates
+			try {
+				const parsed = JSON.parse(content);
+				const responseContent = parsed.response || content;
+				const projectUpdate = parsed.project_update || {};
+				if (project && Object.keys(projectUpdate).length > 0) {
+					const updateData: Partial<Doc<"projects">> = {};
+					if (projectUpdate.name) updateData.name = projectUpdate.name;
+					if (projectUpdate.lexical_state)
+						updateData.lexicalState = projectUpdate.lexical_state;
+					await ctx.runMutation(internal.projects.updateProjectInternal, {
+						projectId: chat.projectId as Id<"projects">,
+						...updateData,
+					});
+				}
+				await ctx.runMutation(api.messages.saveResponse, {
+					messageId: args.messageId,
+					content: responseContent,
+				});
+			} catch (parseError) {
+				console.error("Error parsing AI response as JSON:", parseError);
+				await ctx.runMutation(api.messages.saveResponse, {
+					messageId: args.messageId,
+					content,
+				});
+			}
 		} catch (error) {
 			console.error("Error generating AI response:", error);
 			await ctx.runMutation(api.messages.saveResponse, {
-				chatId: args.chatId,
+				messageId: args.messageId,
 				content: "Sorry, I encountered an error while processing your request.",
-				lexicalState: JSON.stringify({
-					root: {
-						children: [
-							{
-								children: [
-									{
-										detail: 0,
-										format: 0,
-										mode: "normal",
-										style: "",
-										text: "Sorry, I encountered an error while processing your request.",
-										type: "text",
-										version: 1,
-									},
-								],
-								direction: "ltr",
-								format: "",
-								indent: 0,
-								type: "paragraph",
-								version: 1,
-							},
-						],
-						direction: "ltr",
-						format: "",
-						indent: 0,
-						type: "root",
-						version: 1,
-					},
-				}),
 			});
 		}
 	},
@@ -237,116 +277,36 @@ export const generateResponse = action({
 
 export const saveResponse = mutation({
 	args: {
-		chatId: v.id("chats"),
+		messageId: v.id("messages"),
 		content: v.string(),
-		lexicalState: v.string(),
 	},
 	handler: async (ctx, args) => {
-		return await ctx.db.insert("messages", {
-			chatId: args.chatId,
+		return await ctx.db.patch(args.messageId, {
 			content: args.content,
-			role: "assistant",
-			lexicalState: args.lexicalState,
 		});
 	},
 });
 
-// Helper function to convert AI response to Lexical state
-async function generateLexicalState(content: string): Promise<string> {
-	// Parse the content and create structured Lexical nodes
-	const paragraphs = content.split("\n\n").filter((p) => p.trim());
+export const getChatAndProject = internalQuery({
+	args: { chatId: v.id("chats") },
+	handler: async (ctx, args) => {
+		const chat = await ctx.db.get(args.chatId);
+		if (!chat) return null;
+		const project =
+			typeof chat.projectId === "string"
+				? null
+				: await ctx.db.get(chat.projectId);
+		return { chat, project };
+	},
+});
 
-	const children = paragraphs.map((paragraph) => {
-		// Check if it's a heading
-		if (paragraph.startsWith("#")) {
-			const level = paragraph.match(/^#+/)?.[0].length || 1;
-			const text = paragraph.replace(/^#+\s*/, "");
-			return {
-				children: [
-					{
-						detail: 0,
-						format: 1, // bold
-						mode: "normal",
-						style: "",
-						text,
-						type: "text",
-						version: 1,
-					},
-				],
-				direction: "ltr",
-				format: "",
-				indent: 0,
-				type: "heading",
-				tag: `h${Math.min(level, 6)}`,
-				version: 1,
-			};
-		}
-
-		// Check if it's a list item
-		if (paragraph.startsWith("- ") || paragraph.startsWith("* ")) {
-			const text = paragraph.replace(/^[-*]\s*/, "");
-			return {
-				children: [
-					{
-						children: [
-							{
-								detail: 0,
-								format: 0,
-								mode: "normal",
-								style: "",
-								text,
-								type: "text",
-								version: 1,
-							},
-						],
-						direction: "ltr",
-						format: "",
-						indent: 0,
-						type: "listitem",
-						version: 1,
-						value: 1,
-					},
-				],
-				direction: "ltr",
-				format: "",
-				indent: 0,
-				type: "list",
-				listType: "bullet",
-				start: 1,
-				tag: "ul",
-				version: 1,
-			};
-		}
-
-		// Regular paragraph
-		return {
-			children: [
-				{
-					detail: 0,
-					format: 0,
-					mode: "normal",
-					style: "",
-					text: paragraph,
-					type: "text",
-					version: 1,
-				},
-			],
-			direction: "ltr",
-			format: "",
-			indent: 0,
-			type: "paragraph",
-			version: 1,
-		};
-	});
-
-	return JSON.stringify({
-		root: {
-			children,
-			direction: "ltr",
-			format: "",
-			indent: 0,
-			type: "root",
-			version: 1,
-		},
-	});
-}
+export const listChat = internalQuery({
+	args: { chatId: v.id("chats") },
+	handler: async (ctx, args) => {
+		return ctx.db
+			.query("messages")
+			.withIndex("by_chat", (q) => q.eq("chatId", args.chatId))
+			.order("asc")
+			.collect();
+	},
+});

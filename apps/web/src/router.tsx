@@ -15,7 +15,7 @@ export function createRouter() {
 		console.error("missing envar VITE_CONVEX_URL");
 	}
 	const convex = new ConvexReactClient(CONVEX_URL, {
-		unsavedChangesWarning: true,
+		unsavedChangesWarning: false,
 	});
 
 	const router = createTanStackRouter({

@@ -1,6 +1,6 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { internalMutation, mutation, query } from "./_generated/server";
 
 export const list = query({
 	args: {},
@@ -185,5 +185,26 @@ export const remove = mutation({
 		}
 
 		await ctx.db.delete(args.projectId);
+	},
+});
+
+export const updateProjectInternal = internalMutation({
+	args: {
+		projectId: v.id("projects"),
+		name: v.optional(v.string()),
+		lexicalState: v.optional(v.string()),
+	},
+	handler: async (ctx, args) => {
+		const project = await ctx.db.get(args.projectId);
+		if (!project) {
+			throw new Error("Project not found");
+		}
+
+		const updateData: any = {};
+		if (args.name !== undefined) updateData.name = args.name;
+		if (args.lexicalState !== undefined)
+			updateData.lexicalState = args.lexicalState;
+
+		await ctx.db.patch(args.projectId, updateData);
 	},
 });

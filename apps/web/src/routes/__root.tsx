@@ -4,8 +4,13 @@ import {
 	Outlet,
 	Scripts,
 } from "@tanstack/react-router";
+import type { ConvexReactClient } from "convex/react";
 import { Toaster } from "@/components/ui/sonner";
 import appCss from "../index.css?url";
+
+export interface RouterContext {
+	convexClient: ConvexReactClient;
+}
 
 export const Route = createRootRouteWithContext()({
 	head: () => ({

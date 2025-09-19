@@ -33,19 +33,15 @@ const applicationTables = {
 		chatId: v.id("chats"),
 		content: v.string(),
 		role: v.union(v.literal("user"), v.literal("assistant")),
-		lexicalState: v.optional(v.string()),
 	}).index("by_chat", ["chatId"]),
 
 	prompts: defineTable({
-		name: v.string(),
 		content: v.string(),
 		type: v.optional(v.string()),
 		subType: v.optional(v.string()),
-		userId: v.id("users"),
-		isPublic: v.optional(v.boolean()),
 	})
-		.index("by_user", ["userId"])
-		.index("by_public", ["isPublic", "type"]),
+		.index("by_type", ["type"])
+		.index("by_sub_type", ["subType"]),
 
 	// Admin roles table
 	userRoles: defineTable({

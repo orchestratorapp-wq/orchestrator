@@ -33,13 +33,22 @@ export const loggedInUser = query({
 			return null;
 		}
 		const user = await ctx.db.get(userId);
+
 		if (!user) {
 			return null;
 		}
 		const hash = hashSha256(user.email || "person@example.com");
 
+		const userRole = await ctx.db
+			.query("userRoles")
+			.withIndex("by_user", (q) => q.eq("userId", userId))
+			.first();
+
+		const role = userRole?.role || "user";
+
 		return {
 			...user,
+			role,
 			avatar_url:
 				user.image || `https://www.gravatar.com/avatar/${hash}?d=identicon`,
 		};
