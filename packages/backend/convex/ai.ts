@@ -1,13 +1,16 @@
 import { v } from "convex/values";
 import OpenAI from "openai";
 import { api, internal } from "./_generated/api";
-import type { Doc, Id } from "./_generated/dataModel";
+import type { Doc } from "./_generated/dataModel";
 import { internalAction } from "./_generated/server";
 
 export const generateResponse = internalAction({
 	args: {
-		project: v.union(v.null(), v.record(v.string(), v.string())),
-		chat: v.record(v.string(), v.string()),
+		project: v.union(
+			v.null(),
+			v.any(),
+		),
+		chat: v.any(),
 		messageId: v.id("messages"),
 		userId: v.id("users"),
 	},
@@ -19,7 +22,7 @@ export const generateResponse = internalAction({
 
 		// Get chat history
 		const messages = await ctx.runQuery(internal.compose.listChat, {
-			chatId: args.chat._id as Id<"chats">,
+			chatId: args.chat._id,
 		});
 
 		// Build conversation context
@@ -127,14 +130,11 @@ ${projectInstructions}`,
 						);
 						if (createdProjectPayload?.project && createdProjectPayload.chat) {
 							await ctx.runMutation(internal.messages.moveMessages, {
-								fromChatId: chat._id as Id<"chats">,
+								fromChatId: chat._id,
 								toChatId: createdProjectPayload?.chat._id,
 							});
 
-							project = createdProjectPayload.project as unknown as Record<
-								string,
-								string
-							>;
+							project = createdProjectPayload.project;
 						}
 					}
 				} else if (
@@ -154,7 +154,7 @@ ${projectInstructions}`,
 
 					if (Object.keys(updateData).length > 0 && project?._id) {
 						await ctx.runMutation(internal.projects.updateProjectInternal, {
-							projectId: project?._id as Id<"projects">,
+							projectId: project?._id,
 							...updateData,
 						});
 					}
