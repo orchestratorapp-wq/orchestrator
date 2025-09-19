@@ -6,10 +6,7 @@ import { internalAction } from "./_generated/server";
 
 export const generateResponse = internalAction({
 	args: {
-		project: v.union(
-			v.null(),
-			v.any(),
-		),
+		project: v.union(v.null(), v.any()),
 		chat: v.any(),
 		messageId: v.id("messages"),
 		userId: v.id("users"),
@@ -118,7 +115,7 @@ ${projectInstructions}`,
 					args,
 				});
 
-				if (!args.project) {
+				if (!args.project || args.project.isDefault) {
 					if (typeof projectUpdate.name === "string") {
 						const createdProjectPayload = await ctx.runMutation(
 							internal.projects.createProjectInternal,
