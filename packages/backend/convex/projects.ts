@@ -188,6 +188,32 @@ export const remove = mutation({
 	},
 });
 
+export const createProjectInternal = internalMutation({
+	args: {
+		userId: v.id("users"),
+		name: v.string(),
+		lexicalState: v.optional(v.string()),
+	},
+	handler: async (ctx, args) => {
+		const createdProject = await ctx.db.insert("projects", {
+			userId: args.userId,
+			name: args.name,
+			lexicalState: args.lexicalState,
+		});
+
+		if (typeof createdProject !== "string") {
+			throw new Error("Failed to create project");
+		}
+
+		const createdChat = await ctx.db.insert("chats", {
+			userId: args.userId,
+			projectId: createdProject,
+		});
+
+		return { project: createdProject, chat: createdChat };
+	},
+});
+
 export const updateProjectInternal = internalMutation({
 	args: {
 		projectId: v.id("projects"),
@@ -200,7 +226,7 @@ export const updateProjectInternal = internalMutation({
 			throw new Error("Project not found");
 		}
 
-		const updateData: any = {};
+		const updateData: Omit<typeof args, "projectId"> = {};
 		if (args.name !== undefined) updateData.name = args.name;
 		if (args.lexicalState !== undefined)
 			updateData.lexicalState = args.lexicalState;

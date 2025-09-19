@@ -54,7 +54,6 @@ export const get = query({
 
 export const create = mutation({
 	args: {
-		title: v.string(),
 		projectId: v.id("projects"),
 	},
 	handler: async (ctx, args) => {
@@ -76,7 +75,6 @@ export const create = mutation({
 		}
 
 		return await ctx.db.insert("chats", {
-			title: args.title,
 			userId: userId || undefined,
 			projectId: args.projectId,
 		});
@@ -106,30 +104,6 @@ export const moveToProject = mutation({
 
 		await ctx.db.patch(args.chatId, {
 			projectId: args.projectId,
-		});
-	},
-});
-
-export const update = mutation({
-	args: {
-		chatId: v.id("chats"),
-		title: v.string(),
-	},
-	handler: async (ctx, args) => {
-		const userId = await getAuthUserId(ctx);
-		const chat = await ctx.db.get(args.chatId);
-
-		if (!chat) {
-			throw new Error("Chat not found");
-		}
-
-		// Allow updates if user owns the chat or if it's an anonymous chat
-		if (chat.userId !== userId && !(chat.userId === null && userId === null)) {
-			throw new Error("Not authorized");
-		}
-
-		await ctx.db.patch(args.chatId, {
-			title: args.title,
 		});
 	},
 });

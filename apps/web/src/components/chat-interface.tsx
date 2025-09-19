@@ -24,9 +24,13 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
 	// Mutation to send message
 	const sendMessage = useMutation(api.messages.send);
 
+	const messagesCount = messages?.length || 0;
+
 	useEffect(() => {
-		messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-	}, []);
+		if (messagesCount > 0) {
+			messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+		}
+	}, [messagesCount]);
 
 	const handleSend = () => {
 		if (!message.trim()) return;

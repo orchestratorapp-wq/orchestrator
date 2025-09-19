@@ -21,7 +21,6 @@ const applicationTables = {
 		}),
 
 	chats: defineTable({
-		title: v.string(),
 		userId: v.optional(v.id("users")),
 		projectId: v.union(v.id("projects"), v.literal("anonymous_default")),
 	})
