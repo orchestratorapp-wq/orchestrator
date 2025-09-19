@@ -47,12 +47,17 @@ export const composeMessage = action({
 			throw new Error("Chat not found");
 		}
 
-		await ctx.runAction(internal.ai.generateResponse, {
-			messageId: sendPayload.placeholderMessageId,
-			chat,
-			project,
-			userId,
-		});
+		const response: { project?: string } = await ctx.runAction(
+			internal.ai.generateResponse,
+			{
+				messageId: sendPayload.placeholderMessageId,
+				chat,
+				project,
+				userId,
+			},
+		);
+
+		return response;
 	},
 });
 

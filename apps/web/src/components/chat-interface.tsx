@@ -28,7 +28,7 @@ export default function ChatInterface({
 	});
 
 	// Mutation to send message
-	const sendMessage = useAction(api.messages.composeMessage);
+	const sendMessage = useAction(api.compose.composeMessage);
 
 	const messagesCount = messages?.length || 0;
 
@@ -42,10 +42,10 @@ export default function ChatInterface({
 		if (!message.trim()) return;
 		sendMessage({
 			chatId: chatId as Id<"chats">,
-			projectId,
+			projectId: projectId as Id<"projects">,
 			content: message,
 		}).then((result) => {
-			if (result.project && result.project !== projectId) {
+			if (result?.project && result.project !== projectId) {
 				navigate({ to: "/{-$project}", params: { project: result.project } });
 			}
 		});

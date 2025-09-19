@@ -20,10 +20,7 @@ export const generateResponse = internalAction({
 		messageId: v.id("messages"),
 		userId: v.id("users"),
 	},
-	returns: {
-		project: v.optional(v.id("projects")),
-	},
-	handler: async (ctx, args) => {
+	handler: async (ctx, args): Promise<{ project?: string }> => {
 		const openai = new OpenAI({
 			baseURL: process.env.CONVEX_OPENAI_BASE_URL,
 			apiKey: process.env.CONVEX_OPENAI_API_KEY,
@@ -188,6 +185,6 @@ ${projectInstructions}`,
 			});
 		}
 
-		return { project: args.project?._id };
+		return { project: args.project?._id as string };
 	},
 });
