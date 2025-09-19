@@ -17,6 +17,7 @@
 		"@headlessui/react": "2.2.8",
 		"@heroicons/react": "2.2.0",
 		"@lexical/react": "0.35.0",
+		"@lexical/markdown": "0.35.0",
 		"@orhcestrator/backend": "workspace:*",
 		"@tailwindcss/vite": "4.1.13",
 		"@tanstack/react-form": "1.19.5",

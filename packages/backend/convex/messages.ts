@@ -176,6 +176,9 @@ export const send = internalMutation({
 			chatId: resolvedChatId,
 			content: "Generating response...",
 			role: "assistant",
+			meta: {
+				last_message: messageId,
+			},
 		});
 
 		return {
@@ -232,149 +235,45 @@ export const generateResponse = internalAction({
 		const projectInstructions = project
 			? `Your current knowledge of the project "${project.name}" is: ${currentLexicalState}
 
-You MUST analyze the full conversation history, the user's latest input, and craft your response to determine if the project name or lexical state needs updating. ALWAYS infer and propose updates when the conversation implies changes to the project theme, goals, structure, or name—do NOT default to null if there's any relevant signal (e.g., user mentions a new focus like "fitness plan" → suggest name "My Fitness Journey"; or adds tasks → expand the lexical state).
+Analyze the conversation and update the project name and lexical_state if needed. Infer changes from user input, like new themes or tasks.
 
-The lexical state MUST be a STRICT, VALID JSON object in the exact Lexical.dev editor format (see example below). It represents the ENTIRE project's plan as a serializable editor state: a tree starting with {"root": {"children": [...], ...}} where nodes have types like "root", "paragraph", "heading", "list", "list-item", etc., with properties like "children", "text", "format", "type", "version:1", etc. Do NOT output plain text or Markdown—only valid Lexical JSON that can be directly deserialized by Lexical's $generateFromJSON.
+The lexical_state must be extremely well-formatted Markdown, representing the entire project's plan. Use clear headings, bullet points, and subheadings for structure. Ensure it is concise, readable, and free of errors. Do not include any content in the response that duplicates or references the lexical_state directly.
 
-Example of valid lexical_state JSON (for a simple daily plan):
-{
-  "root": {
-    "children": [
-      {
-        "children": [
-          {
-            "detail": 0,
-            "format": 0,
-            "mode": "normal",
-            "style": "",
-            "text": "Morning Routine",
-            "type": "text",
-            "version": 1
-          }
-        ],
-        "direction": "ltr",
-        "format": "",
-        "indent": 0,
-        "type": "heading",
-        "version": 1
-      },
-      {
-        "children": [
-          {
-            "detail": 0,
-            "format": 0,
-            "mode": "normal",
-            "style": "",
-            "text": "• Wake up at 7 AM",
-            "type": "text",
-            "version": 1
-          }
-        ],
-        "direction": "ltr",
-        "format": "",
-        "indent": 0,
-        "type": "list-item",
-        "version": 1
-      }
-    ],
-    "direction": "ltr",
-    "format": "",
-    "indent": 0,
-    "type": "root",
-    "version": 1
-  }
-}
+Build incrementally from the current state, appending new sections only when relevant, and maintain a cohesive plan.
 
-Build the lexical_state incrementally: Start from the current state (${currentLexicalState ? "existing state" : "empty root"}), then append/modify sections based on the conversation (e.g., add new headings for tasks, lists for steps, paragraphs for reflections). Ensure it's complete and self-contained—cover all key elements from the entire chat history.
-
-Your output MUST ALWAYS be a valid JSON object with EXACTLY this structure, even if minimal updates (but prefer updates over nulls when relevant):
+Output JSON with:
 
 {
-  "response": "The user-visible response content here. This should be a natural, conversational reply structured as a daily plan.",
+  "response": "Conversational reply as a daily plan, without repeating any part of the lexical_state.",
   "project_update": {
-    "name": "New project name if the conversation suggests a theme/change (e.g., 'Fitness Plan 2025'), otherwise the current '${project.name}'",
-    "lexical_state": "The FULL updated lexical_state as a valid JSON string (properly escaped) representing the entire project editor state"
+    "name": "Updated or current name",
+    "lexical_state": "Full Markdown string for the project plan"
   }
 }
 
-IMPORTANT RULES:
-- ALWAYS output only valid JSON. Do not include any other text before, after, or around the JSON. No explanations or comments.
-- The 'response' field must be the full, helpful reply to the user—conversational and plan-oriented.
-- For 'project_update':
-  - 'name': ALWAYS provide a string (never null)—infer/update based on conversation (e.g., if user says 'let's plan my coding project', set to 'My Coding Project'). Keep it descriptive and relevant.
-  - 'lexical_state': ALWAYS provide a full valid Lexical JSON string (never null)—evolve it to reflect the cumulative project plan from the chat. Use headings for sections, lists for tasks, etc.
-- Base ALL updates on the full conversation context to keep the project evolving accurately and comprehensively.`
+Rules:
+- Output valid JSON only.
+- 'lexical_state' as Markdown string (never null).
+- Infer name and build plan from chat.
+- Ensure lexical_state is always well-formatted and complete Markdown.`
 			: `
-You are working on a default project without specific context. ALWAYS infer a project name and initial structure from the conversation—do NOT use nulls; create meaningful defaults based on user input (e.g., if about 'daily workout', name it 'Daily Workout Plan' and build a basic lexical state with relevant sections).
+Infer project name and structure from conversation.
 
-The lexical state MUST be a STRICT, VALID JSON object in the exact Lexical.dev editor format (see example below). It represents the ENTIRE project's plan as a serializable editor state: a tree starting with {"root": {"children": [...], ...}} where nodes have types like "root", "paragraph", "heading", "list", "list-item", etc., with properties like "children", "text", "format", "type", "version:1", etc. Do NOT output plain text or Markdown—only valid Lexical JSON that can be directly deserialized by Lexical's $generateFromJSON.
+The lexical_state must be extremely well-formatted Markdown. Use clear headings, bullet points, and subheadings for structure. Ensure it is concise, readable, and free of errors. Do not include any content in the response that duplicates or references the lexical_state directly.
 
-Example of valid lexical_state JSON (for a simple daily plan):
-{
-  "root": {
-    "children": [
-      {
-        "children": [
-          {
-            "detail": 0,
-            "format": 0,
-            "mode": "normal",
-            "style": "",
-            "text": "Morning Routine",
-            "type": "text",
-            "version": 1
-          }
-        ],
-        "direction": "ltr",
-        "format": "",
-        "indent": 0,
-        "type": "heading",
-        "version": 1
-      },
-      {
-        "children": [
-          {
-            "detail": 0,
-            "format": 0,
-            "mode": "normal",
-            "style": "",
-            "text": "• Wake up at 7 AM",
-            "type": "text",
-            "version": 1
-          }
-        ],
-        "direction": "ltr",
-        "format": "",
-        "indent": 0,
-        "type": "list-item",
-        "version": 1
-      }
-    ],
-    "direction": "ltr",
-    "format": "",
-    "indent": 0,
-    "type": "root",
-    "version": 1
-  }
-}
-
-Your output MUST ALWAYS be a valid JSON object with EXACTLY this structure:
+Output JSON:
 
 {
-  "response": "The user-visible response content here. This should be a natural, conversational reply structured as a daily plan.",
+  "response": "Reply as a daily plan, without repeating any part of the lexical_state.",
   "project_update": {
-    "name": "Inferred project name as a descriptive string (e.g., 'Daily Productivity Plan') based on the conversation",
-    "lexical_state": "The FULL initial lexical_state as a valid JSON string (properly escaped) representing the project editor state from the chat"
+    "name": "Inferred name",
+    "lexical_state": "Markdown string"
   }
 }
 
-IMPORTANT RULES:
-- ALWAYS output only valid JSON. Do not include any other text.
-- The 'response' field must be the full, helpful reply to the user—conversational and plan-oriented.
-- For 'project_update':
-  - 'name': ALWAYS a non-null string—infer from conversation themes (e.g., productivity → 'My Daily Planner').
-  - 'lexical_state': ALWAYS a full valid Lexical JSON string (never null)—build a complete initial structure with sections inferred from the chat (use headings, lists, etc.).
-- Lexical is editor https://lexical.dev/ and it has specific json state—stick to the format precisely.`;
+Rules:
+- Output valid JSON only.
+- 'lexical_state' as Markdown string.`;
 
 		// Add system prompt for daily planning with project context
 		const systemPrompt = {

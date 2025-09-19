@@ -32,6 +32,7 @@ const applicationTables = {
 		chatId: v.id("chats"),
 		content: v.string(),
 		role: v.union(v.literal("user"), v.literal("assistant")),
+		meta: v.optional(v.record(v.string(), v.string())),
 	}).index("by_chat", ["chatId"]),
 
 	prompts: defineTable({

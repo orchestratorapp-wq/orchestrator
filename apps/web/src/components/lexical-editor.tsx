@@ -1,3 +1,7 @@
+import { CodeHighlightNode, CodeNode } from "@lexical/code";
+import { AutoLinkNode, LinkNode } from "@lexical/link";
+import { ListItemNode, ListNode } from "@lexical/list";
+import { $convertFromMarkdownString, TRANSFORMERS } from "@lexical/markdown";
 import type { InitialConfigType } from "@lexical/react/LexicalComposer";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
@@ -5,6 +9,8 @@ import { EditorRefPlugin } from "@lexical/react/LexicalEditorRefPlugin";
 import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
 import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
+import { HeadingNode, QuoteNode } from "@lexical/rich-text";
+import { TableCellNode, TableNode, TableRowNode } from "@lexical/table";
 import type { LexicalEditor } from "lexical";
 import { useEffect, useState } from "react";
 
@@ -14,6 +20,19 @@ interface LexicalEditorProps {
 
 const editorConfig: InitialConfigType = {
 	namespace: "LexicalEditor",
+	nodes: [
+		HeadingNode,
+		ListNode,
+		ListItemNode,
+		QuoteNode,
+		CodeNode,
+		CodeHighlightNode,
+		TableNode,
+		TableCellNode,
+		TableRowNode,
+		LinkNode,
+		AutoLinkNode,
+	],
 	theme: {
 		paragraph: "mb-1",
 		text: {
@@ -32,15 +51,18 @@ export default function LexicalEditorComponent({
 	content,
 }: LexicalEditorProps) {
 	const [editor, setEditor] = useState<LexicalEditor | null>(null);
-
 	useEffect(() => {
 		if (editor && content) {
 			try {
-				const parsedState = JSON.parse(content);
-				const newState = editor.parseEditorState(parsedState);
-				editor.setEditorState(newState);
-			} catch (error) {
-				console.error("Failed to load lexical state:", error);
+				// Try to parse as Lexical JSON
+				const parsedState = editor.parseEditorState(content);
+				editor.setEditorState(parsedState);
+			} catch {
+				try {
+					editor.update(() => {
+						$convertFromMarkdownString(content, TRANSFORMERS);
+					});
+				} catch {}
 			}
 		}
 	}, [editor, content]);
