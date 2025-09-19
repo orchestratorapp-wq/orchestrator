@@ -40,16 +40,22 @@ export const single = query({
 				)
 				.first();
 
-			return project || "default";
+			return project ? { project } : null;
 		}
 
 		const project = await ctx.db.get(args.projectId);
 
 		if (!project || project.userId !== userId) {
-			return "default";
+			return null;
 		}
 
-		return project;
+		const chat = await ctx.db
+			.query("chats")
+			.withIndex("by_project", (q) => q.eq("projectId", project._id))
+			.order("desc")
+			.first();
+
+		return { project, chat };
 	},
 });
 

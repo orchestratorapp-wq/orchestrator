@@ -21,7 +21,7 @@ export const Route = createFileRoute("/{-$project}")({
 });
 
 function ChatComponent() {
-	const { project } = Route.useParams();
+	const { project: projectId } = Route.useParams();
 	const { signIn, signOut } = useAuthActions();
 	const { isLoading, isAuthenticated } = useConvexAuth();
 	const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -31,7 +31,7 @@ function ChatComponent() {
 		api.projects.single,
 		isAuthenticated
 			? {
-					projectId: project as Id<"projects">,
+					projectId: projectId as Id<"projects">,
 				}
 			: "skip",
 	);
@@ -90,7 +90,7 @@ function ChatComponent() {
 														<a
 															href={`/${item._id}`}
 															className={cn(
-																item._id === project
+																item._id === projectPayload?.project?._id
 																	? "bg-gray-50 text-indigo-600 dark:bg-white/5 dark:text-white"
 																	: "text-gray-700 hover:bg-gray-50 hover:text-indigo-600 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white",
 																"group flex gap-x-3 rounded-md p-2 font-semibold text-sm/6",
@@ -160,7 +160,7 @@ function ChatComponent() {
 												<a
 													href={`/${item._id}`}
 													className={cn(
-														item._id === project
+														item._id === projectPayload?.project?._id
 															? "bg-gray-50 text-indigo-600 dark:bg-white/5 dark:text-white"
 															: "text-gray-700 hover:bg-gray-50 hover:text-indigo-600 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white",
 														"group flex gap-x-3 rounded-md p-2 font-semibold text-sm/6",
@@ -252,18 +252,14 @@ function ChatComponent() {
 								</div>
 							</div>
 						)}
-						<ChatInterface chatId="default" />
+						<ChatInterface chatId={projectPayload?.chat?._id || "default"} />
 					</div>
 				</div>
 			</main>
 
 			<aside className="fixed inset-y-0 right-0 hidden w-96 overflow-y-auto border-gray-200 border-l px-4 py-6 sm:px-6 lg:px-8 xl:block dark:border-white/10">
 				<LexicalEditorComponent
-					content={
-						typeof projectPayload === "string"
-							? undefined
-							: projectPayload?.lexicalState
-					}
+					content={projectPayload?.project?.lexicalState}
 				/>
 			</aside>
 		</div>

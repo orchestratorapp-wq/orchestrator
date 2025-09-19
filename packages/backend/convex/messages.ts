@@ -382,8 +382,6 @@ export const moveMessages = internalMutation({
 			.order("asc")
 			.collect();
 
-		console.log(5, messages);
-
 		for (const message of messages) {
 			await ctx.db.patch(message._id, { chatId: args.toChatId });
 		}
