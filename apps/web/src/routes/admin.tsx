@@ -23,10 +23,10 @@ function AdminLanding() {
 	const user = useQuery(api.auth.loggedInUser, isAuthenticated ? {} : "skip");
 
 	useEffect(() => {
-		if (user?.role !== "admin") {
+		if (user !== undefined && user?.role !== "admin") {
 			navigate({ to: "..", replace: true });
 		}
-	}, [navigate, user?.role]);
+	}, [navigate, user]);
 
 	if (isLoading) {
 		return (
