@@ -4,6 +4,7 @@ import OpenAI from "openai";
 import { api, internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import {
+	action,
 	internalAction,
 	internalMutation,
 	internalQuery,
@@ -62,18 +63,42 @@ export const list = query({
 	},
 });
 
-export const send = mutation({
+export const composeMessage = action({
 	args: {
-		chatId: v.optional(v.union(v.id("chats"), v.literal("default"))),
 		content: v.string(),
+		chatId: v.optional(v.union(v.id("chats"), v.literal("default"))),
 		projectId: v.optional(v.id("projects")),
 	},
 	handler: async (ctx, args) => {
 		const userId = await getAuthUserId(ctx);
+
 		if (!userId) {
 			throw new Error("Authentication required");
 		}
 
+		const sendPayload = await ctx.runMutation(internal.messages.send, {
+			userId,
+			content: args.content,
+			chatId: args.chatId,
+			projectId: args.projectId,
+		});
+
+		return ctx.runAction(internal.messages.generateResponse, {
+			chatId: sendPayload.resolvedChatId,
+			messageId: sendPayload.placeholderMessageId,
+			userId,
+		});
+	},
+});
+
+export const send = internalMutation({
+	args: {
+		userId: v.id("users"),
+		content: v.string(),
+		chatId: v.optional(v.union(v.id("chats"), v.literal("default"))),
+		projectId: v.optional(v.id("projects")),
+	},
+	handler: async (ctx, args) => {
 		let resolvedChatId: Id<"chats"> | null = null;
 
 		if (args.chatId) {
@@ -82,7 +107,7 @@ export const send = mutation({
 				const defaultProject = await ctx.db
 					.query("projects")
 					.withIndex("by_user_default", (q) =>
-						q.eq("userId", userId).eq("isDefault", true),
+						q.eq("userId", args.userId).eq("isDefault", true),
 					)
 					.first();
 
@@ -108,7 +133,7 @@ export const send = mutation({
 				const defaultProject = await ctx.db
 					.query("projects")
 					.withIndex("by_user_default", (q) =>
-						q.eq("userId", userId).eq("isDefault", true),
+						q.eq("userId", args.userId).eq("isDefault", true),
 					)
 					.first();
 
@@ -118,14 +143,14 @@ export const send = mutation({
 					projectIdToUse = await ctx.db.insert("projects", {
 						name: "Default Project",
 						description: "Your default project for daily planning",
-						userId,
+						userId: args.userId,
 						isDefault: true,
 					});
 				}
 			}
 
 			resolvedChatId = await ctx.db.insert("chats", {
-				userId,
+				userId: args.userId,
 				projectId: projectIdToUse,
 			});
 		}
@@ -136,7 +161,7 @@ export const send = mutation({
 			throw new Error("Chat not found");
 		}
 
-		if (chat.userId !== userId) {
+		if (chat.userId !== args.userId) {
 			throw new Error("Not authorized");
 		}
 
@@ -154,14 +179,12 @@ export const send = mutation({
 			role: "assistant",
 		});
 
-		// Schedule AI response
-		await ctx.scheduler.runAfter(0, internal.messages.generateResponse, {
-			chatId: resolvedChatId,
-			messageId: placeholderMessageId,
-			userId,
-		});
-
-		return messageId;
+		return {
+			messageId: messageId,
+			placeholderMessageId: placeholderMessageId,
+			resolvedChatId: resolvedChatId,
+			userId: args.userId,
+		};
 	},
 });
 
@@ -196,7 +219,7 @@ export const generateResponse = internalAction({
 			throw new Error("Chat not found");
 		}
 		const { chat, project: rawProject } = data;
-		const project = rawProject as Doc<"projects"> | null;
+		let project = rawProject as Doc<"projects"> | null;
 		const currentLexicalState = project?.lexicalState || "";
 
 		const systemPrompts = await ctx.runQuery(internal.prompts.getSystemPrompts);
@@ -245,7 +268,8 @@ Your output MUST ALWAYS be a valid JSON object with EXACTLY this structure:
 
 IMPORTANT RULES:
 - ALWAYS output only valid JSON. Do not include any other text.
-- Follow the same rules as above for project_update fields.`;
+- Follow the same rules as above for project_update fields.
+- Lexical is editor https://lexical.dev/ and it has specific json state don't put random strings here`;
 
 		// Add system prompt for daily planning with project context
 		const systemPrompt = {
@@ -272,23 +296,21 @@ ${projectInstructions}`,
 				const responseContent = parsed.response || content;
 				const projectUpdate = parsed.project_update || {};
 
-				console.log(1, project, responseContent, projectUpdate);
-
 				if (!project) {
 					if (typeof projectUpdate.name === "string") {
-						const { chat: createdChat } = await ctx.runMutation(
-							internal.projects.createProjectInternal,
-							{
+						const { chat: createdChat, project: createdProject } =
+							await ctx.runMutation(internal.projects.createProjectInternal, {
 								userId: args.userId,
 								name: projectUpdate.name,
 								lexicalState: projectUpdate.lexical_state,
-							},
-						);
+							});
 
 						await ctx.runMutation(internal.messages.moveMessages, {
 							fromChatId: chat._id,
 							toChatId: createdChat,
 						});
+
+						project = createdProject;
 					}
 				} else if (
 					projectUpdate.name !== null ||
@@ -331,6 +353,8 @@ ${projectInstructions}`,
 				content: "Sorry, I encountered an error while processing your request.",
 			});
 		}
+
+		return { project };
 	},
 });
 

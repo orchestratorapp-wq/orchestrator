@@ -1,7 +1,8 @@
 import { useAuthToken } from "@convex-dev/auth/react";
 import { api } from "@orhcestrator/backend/convex/_generated/api";
 import type { Id } from "@orhcestrator/backend/convex/_generated/dataModel";
-import { useMutation, useQuery } from "convex/react";
+import { useNavigate } from "@tanstack/react-router";
+import { useAction, useQuery } from "convex/react";
 import { Send } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -9,10 +10,15 @@ import { Input } from "@/components/ui/input";
 
 interface ChatInterfaceProps {
 	chatId: string;
+	projectId?: string;
 }
 
-export default function ChatInterface({ chatId }: ChatInterfaceProps) {
+export default function ChatInterface({
+	chatId,
+	projectId,
+}: ChatInterfaceProps) {
 	const token = useAuthToken();
+	const navigate = useNavigate();
 	const [message, setMessage] = useState("");
 	const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -22,7 +28,7 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
 	});
 
 	// Mutation to send message
-	const sendMessage = useMutation(api.messages.send);
+	const sendMessage = useAction(api.messages.composeMessage);
 
 	const messagesCount = messages?.length || 0;
 
@@ -37,6 +43,10 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
 		sendMessage({
 			chatId: chatId as Id<"chats">,
 			content: message,
+		}).then((result) => {
+			if (result.project && result.project !== projectId) {
+				navigate({ to: "/{-$project}", params: { project: result.project } });
+			}
 		});
 		setMessage("");
 	};
