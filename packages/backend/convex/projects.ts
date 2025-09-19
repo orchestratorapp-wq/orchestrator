@@ -200,13 +200,6 @@ export const createProjectInternal = internalMutation({
 		name: v.string(),
 		lexicalState: v.optional(v.string()),
 	},
-	returns: v.union(
-		v.null(),
-		v.object({
-			project: v.id("projects"),
-			chat: v.id("chats"),
-		}),
-	),
 	handler: async (ctx, args) => {
 		const createdProject = await ctx.db.insert("projects", {
 			userId: args.userId,
@@ -223,7 +216,10 @@ export const createProjectInternal = internalMutation({
 			projectId: createdProject,
 		});
 
-		return { project: createdProject, chat: createdChat };
+		return {
+			project: await ctx.db.get(createdProject),
+			chat: await ctx.db.get(createdChat),
+		};
 	},
 });
 
