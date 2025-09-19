@@ -8,9 +8,9 @@ import {
 import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
 import { api } from "@orhcestrator/backend/convex/_generated/api";
 import type { Id } from "@orhcestrator/backend/convex/_generated/dataModel";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useConvexAuth, useQuery } from "convex/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import ChatInterface from "@/components/chat-interface";
 import LexicalEditorComponent from "@/components/lexical-editor";
 import { UserProfileDropdown } from "@/components/UserProfileDropdown";
@@ -21,6 +21,7 @@ export const Route = createFileRoute("/{-$project}")({
 });
 
 function ChatComponent() {
+	const navigate = useNavigate();
 	const { project: projectId } = Route.useParams();
 	const { signIn, signOut } = useAuthActions();
 	const { isLoading, isAuthenticated } = useConvexAuth();
@@ -35,6 +36,16 @@ function ChatComponent() {
 				}
 			: "skip",
 	);
+
+	useEffect(() => {
+		if (
+			projectPayload !== undefined &&
+			!projectPayload?.project &&
+			!!projectId
+		) {
+			navigate({ to: "/{-$project}", params: { project: undefined } });
+		}
+	}, [projectPayload?.project, projectId, projectPayload, navigate]);
 
 	return (
 		<div>
