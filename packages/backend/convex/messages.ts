@@ -84,8 +84,8 @@ export const composeMessage = action({
 
 		return ctx.runAction(internal.messages.generateResponse, {
 			chatId: sendPayload.resolvedChatId,
-			projectId: args.projectId,
 			messageId: sendPayload.placeholderMessageId,
+			projectId: args.projectId,
 			userId,
 		});
 	},
@@ -97,6 +97,10 @@ export const send = internalMutation({
 		content: v.string(),
 		chatId: v.optional(v.union(v.id("chats"), v.literal("default"))),
 		projectId: v.optional(v.id("projects")),
+	},
+	returns: {
+		placeholderMessageId: v.id("messages"),
+		resolvedChatId: v.id("chats"),
 	},
 	handler: async (ctx, args) => {
 		let resolvedChatId: Id<"chats"> | null = null;
@@ -195,9 +199,12 @@ export const send = internalMutation({
 export const generateResponse = internalAction({
 	args: {
 		chatId: v.id("chats"),
-		projectId: v.id("projects"),
+		projectId: v.optional(v.id("projects")),
 		messageId: v.id("messages"),
 		userId: v.id("users"),
+	},
+	returns: {
+		project: v.id("projects"),
 	},
 	handler: async (ctx, args) => {
 		const openai = new OpenAI({
@@ -221,10 +228,12 @@ export const generateResponse = internalAction({
 			chatId: args.chatId,
 			projectId: args.projectId,
 		});
-		if (!data) {
+		const { chat, project: rawProject } = data;
+
+		if (!chat) {
 			throw new Error("Chat not found");
 		}
-		const { chat, project: rawProject } = data;
+
 		let project = rawProject as Doc<"projects"> | null;
 		const currentLexicalState = project?.lexicalState || "";
 
@@ -308,19 +317,21 @@ ${projectInstructions}`,
 
 				if (!project) {
 					if (typeof projectUpdate.name === "string") {
-						const { chat: createdChat, project: createdProject } =
-							await ctx.runMutation(internal.projects.createProjectInternal, {
+						const createdProjectPayload = await ctx.runMutation(
+							internal.projects.createProjectInternal,
+							{
 								userId: args.userId,
 								name: projectUpdate.name,
 								lexicalState: projectUpdate.lexical_state || undefined,
-							});
+							},
+						);
 
 						await ctx.runMutation(internal.messages.moveMessages, {
 							fromChatId: chat._id,
-							toChatId: createdChat,
+							toChatId: createdProjectPayload?.chat,
 						});
 
-						project = createdProject;
+						project = createdProjectPayload.project;
 					}
 				} else if (
 					!!projectUpdate.name ||
@@ -339,7 +350,7 @@ ${projectInstructions}`,
 
 					if (Object.keys(updateData).length > 0) {
 						await ctx.runMutation(internal.projects.updateProjectInternal, {
-							projectId: chat.projectId as Id<"projects">,
+							projectId: project._id,
 							...updateData,
 						});
 					}
@@ -382,11 +393,20 @@ export const saveResponse = mutation({
 
 export const getChatAndProject = internalQuery({
 	args: { chatId: v.id("chats"), projectId: v.optional(v.id("projects")) },
+	returns: {
+		chat: v.id("chats"),
+		project: v.optional(v.id("projects")),
+	},
 	handler: async (ctx, args) => {
 		const chat = await ctx.db.get(args.chatId);
+
+		if (!chat) {
+			throw new Error("Chat not found");
+		}
+
 		const project = !args.projectId ? null : await ctx.db.get(args.projectId);
 
-		return { chat, project };
+		return { chat: chat._id, project: project?._id };
 	},
 });
 

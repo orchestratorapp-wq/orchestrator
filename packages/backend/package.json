@@ -10,14 +10,14 @@
 	"license": "ISC",
 	"description": "",
 	"devDependencies": {
-		"@types/node": "24.3.3",
+		"@types/node": "24.5.2",
 		"typescript": "5.9.2"
 	},
 	"dependencies": {
-		"@auth/core": "0.37.0",
+		"@auth/core": "0.40.0",
 		"@convex-dev/auth": "latest",
-		"convex": "1.27.0",
+		"convex": "1.27.1",
 		"convex-helpers": "^0.1.104",
-		"openai": "5.20.2"
+		"openai": "5.21.0"
 	}
 }

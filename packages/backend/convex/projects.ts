@@ -200,6 +200,13 @@ export const createProjectInternal = internalMutation({
 		name: v.string(),
 		lexicalState: v.optional(v.string()),
 	},
+	returns: v.union(
+		v.null(),
+		v.object({
+			project: v.id("projects"),
+			chat: v.id("chats"),
+		}),
+	),
 	handler: async (ctx, args) => {
 		const createdProject = await ctx.db.insert("projects", {
 			userId: args.userId,
@@ -208,7 +215,7 @@ export const createProjectInternal = internalMutation({
 		});
 
 		if (typeof createdProject !== "string") {
-			throw new Error("Failed to create project");
+			return null;
 		}
 
 		const createdChat = await ctx.db.insert("chats", {
