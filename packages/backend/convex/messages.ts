@@ -62,6 +62,7 @@ export const list = query({
 			.collect();
 	},
 });
+
 export const composeMessage = action({
 	args: {
 		content: v.string(),
@@ -188,10 +189,8 @@ export const send = internalMutation({
 		});
 
 		return {
-			messageId: messageId,
 			placeholderMessageId: placeholderMessageId,
 			resolvedChatId: resolvedChatId,
-			userId: args.userId,
 		};
 	},
 });
@@ -204,7 +203,7 @@ export const generateResponse = internalAction({
 		userId: v.id("users"),
 	},
 	returns: {
-		project: v.id("projects"),
+		project: v.optional(v.id("projects")),
 	},
 	handler: async (ctx, args) => {
 		const openai = new OpenAI({
@@ -223,18 +222,18 @@ export const generateResponse = internalAction({
 			content: msg.content,
 		}));
 
-		// Get chat and project for context
-		const data = await ctx.runQuery(internal.messages.getChatAndProject, {
-			chatId: args.chatId,
-			projectId: args.projectId,
-		});
-		const { chat, project: rawProject } = data;
+		let { chat, project } = await ctx.runQuery(
+			internal.messages.getChatAndProject,
+			{
+				chatId: args.chatId,
+				projectId: args.projectId,
+			},
+		);
 
 		if (!chat) {
 			throw new Error("Chat not found");
 		}
 
-		let project = rawProject as Doc<"projects"> | null;
 		const currentLexicalState = project?.lexicalState || "";
 
 		const systemPrompts = await ctx.runQuery(internal.prompts.getSystemPrompts);
@@ -313,7 +312,7 @@ ${projectInstructions}`,
 				const responseContent = parsed.response || content;
 				const projectUpdate = parsed.project_update || {};
 
-				console.log({ projectUpdate, responseContent, project });
+				console.log({ projectUpdate, responseContent, project, args });
 
 				if (!project) {
 					if (typeof projectUpdate.name === "string") {
@@ -375,7 +374,7 @@ ${projectInstructions}`,
 			});
 		}
 
-		return { project };
+		return { project: project?._id };
 	},
 });
 
@@ -393,10 +392,6 @@ export const saveResponse = mutation({
 
 export const getChatAndProject = internalQuery({
 	args: { chatId: v.id("chats"), projectId: v.optional(v.id("projects")) },
-	returns: {
-		chat: v.id("chats"),
-		project: v.optional(v.id("projects")),
-	},
 	handler: async (ctx, args) => {
 		const chat = await ctx.db.get(args.chatId);
 
@@ -406,7 +401,7 @@ export const getChatAndProject = internalQuery({
 
 		const project = !args.projectId ? null : await ctx.db.get(args.projectId);
 
-		return { chat: chat._id, project: project?._id };
+		return { chat: chat, project: project };
 	},
 });
 

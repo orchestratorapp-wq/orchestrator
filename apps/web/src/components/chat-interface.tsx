@@ -42,6 +42,7 @@ export default function ChatInterface({
 		if (!message.trim()) return;
 		sendMessage({
 			chatId: chatId as Id<"chats">,
+			projectId,
 			content: message,
 		}).then((result) => {
 			if (result.project && result.project !== projectId) {
