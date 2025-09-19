@@ -36,6 +36,7 @@ const applicationTables = {
 
 	prompts: defineTable({
 		content: v.string(),
+		model: v.optional(v.string()),
 		type: v.optional(v.string()),
 		subType: v.optional(v.string()),
 	})

@@ -18,10 +18,12 @@ function EditPrompt() {
 	const [content, setContent] = useState("");
 	const [type, setType] = useState("");
 	const [subType, setSubType] = useState("");
+	const [model, setModel] = useState("");
 	const [isSubmitting, setIsSubmitting] = useState(false);
 
 	const typeOptions = ["daily_planner"];
 	const subTypeOptions = ["system"];
+	const modelOptions = ["gpt-5", "gpt-5-nano"];
 
 	const isNew = id === "new";
 	const prompt = useQuery(
@@ -34,11 +36,13 @@ function EditPrompt() {
 			setContent(prompt.content);
 			setType(prompt.type || "");
 			setSubType(prompt.subType || "");
+			setModel(prompt.model || "");
 		} else if (isNew) {
 			// Reset for new
 			setContent("");
 			setType("");
 			setSubType("");
+			setModel("");
 		}
 	}, [prompt, isNew]);
 
@@ -131,6 +135,18 @@ function EditPrompt() {
 								>
 									<option value="">-- Select Sub Type --</option>
 									{subTypeOptions.map((option) => (
+										<option key={option} value={option}>
+											{startCase(option)}
+										</option>
+									))}
+								</select>
+								<select
+									value={model}
+									onChange={(e) => setModel(e.target.value)}
+									className="mt-1 block w-full rounded-md border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+								>
+									<option value="">-- Select Model --</option>
+									{modelOptions.map((option) => (
 										<option key={option} value={option}>
 											{startCase(option)}
 										</option>

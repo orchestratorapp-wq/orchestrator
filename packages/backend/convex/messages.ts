@@ -257,7 +257,7 @@ ${projectInstructions}`,
 
 		try {
 			const response = await openai.chat.completions.create({
-				model: "gpt-5-nano",
+				model: systemPrompts?.model || "gpt-5-nano",
 				messages: [systemPrompt, ...conversation],
 			});
 
