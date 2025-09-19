@@ -178,22 +178,6 @@ function EditPrompt() {
 									{isSubmitting ? "Saving..." : "Save"}
 								</button>
 							</div>
-
-							<div className="flex justify-end space-x-4">
-								<Link
-									to="/admin/prompts"
-									className="rounded-md border border-gray-300 bg-white px-4 py-2 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-								>
-									Cancel
-								</Link>
-								<button
-									type="submit"
-									disabled={isSubmitting}
-									className="rounded-md bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-500 disabled:opacity-50"
-								>
-									{isSubmitting ? "Saving..." : "Save"}
-								</button>
-							</div>
 						</form>
 					</div>
 				</main>
