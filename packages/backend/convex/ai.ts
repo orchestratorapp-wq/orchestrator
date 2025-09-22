@@ -34,14 +34,11 @@ export const generateResponse = internalAction({
 
 		// Base system prompt for daily planning
 		const baseContent =
-			systemPrompts?.content ||
 			"You are an AI assistant that helps create beautiful daily plans. When responding, consider how your response could be structured as a well-organized daily plan. Provide clear, actionable information that can be easily converted into structured daily tasks, schedules, goals, and reflections. Structure your responses with clear sections like Morning Routine, Work Tasks, Evening Wind-down, Goals for Tomorrow, etc. Focus on creating meaningful, balanced daily plans that promote productivity and well-being.";
 
 		// Adjusted project-specific instructions to enforce extraction and updates for project name and lexical state
 		const projectInstructions = args.project
-			? `Your current knowledge of the project "${args.project?.name}" is: ${currentLexicalState}
-
-Analyze the conversation and update the project name and lexical_state if needed. Infer changes from user input, like new themes or tasks.
+			? `Analyze the conversation and update the project name and lexical_state if needed. Infer changes from user input, like new themes or tasks.
 
 The lexical_state must be extremely well-formatted Markdown, representing the entire project's plan. Use clear headings, bullet points, and subheadings for structure. Ensure it is concise, readable, and free of errors. Do not include any content in the response that duplicates or references the lexical_state directly.
 
@@ -84,14 +81,16 @@ Rules:
 		// Add system prompt for daily planning with project context
 		const systemPrompt = {
 			role: "system" as const,
-			content: `${baseContent}
-
-${projectInstructions}`,
+			content: `
+			${systemPrompts?.[0]?.content || baseContent}
+      Your current knowledge of the project "${args.project?.name}" is: ${currentLexicalState}
+      ${systemPrompts?.[1]?.content || projectInstructions}
+`,
 		};
 
 		try {
 			const response = await openai.chat.completions.create({
-				model: systemPrompts?.model || "gpt-5-nano",
+				model: systemPrompts?.[0]?.model || "gpt-5-nano",
 				messages: [systemPrompt, ...conversation],
 			});
 

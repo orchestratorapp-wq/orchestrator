@@ -1,6 +1,7 @@
 import { api } from "@orhcestrator/backend/convex/_generated/api";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
+import { truncate } from "es-toolkit/compat";
 
 export const Route = createFileRoute("/admin/prompts/")({
 	component: RouteComponent,
@@ -17,8 +18,11 @@ function RouteComponent() {
 						<div className="flex items-center px-4 py-4">
 							<div className="min-w-0 flex-1">
 								<div className="min-w-0 flex-1">
-									<p className="truncate font-medium text-gray-900 text-lg dark:text-white">
-										{prompt.content}
+									<p className="flex gap-10 font-medium text-gray-900 text-lg dark:text-white">
+										<p>{prompt.weight}</p>
+										{truncate(prompt.content, {
+											length: 100,
+										})}
 									</p>
 								</div>
 								<div className="flex items-center space-x-4">

@@ -37,12 +37,13 @@ const applicationTables = {
 
 	prompts: defineTable({
 		content: v.string(),
+		weight: v.number(),
 		model: v.optional(v.string()),
 		type: v.optional(v.string()),
 		subType: v.optional(v.string()),
 	})
 		.index("by_type", ["type"])
-		.index("by_sub_type", ["subType"]),
+		.index("by_sub_type", ["subType", "weight"]),
 
 	// Admin roles table
 	userRoles: defineTable({

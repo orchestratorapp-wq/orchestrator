@@ -2,6 +2,7 @@ import { api } from "@orhcestrator/backend/convex/_generated/api";
 import type { Id } from "@orhcestrator/backend/convex/_generated/dataModel";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
+import { toFinite } from "es-toolkit/compat";
 import { startCase } from "es-toolkit/string";
 import { useEffect, useState } from "react";
 
@@ -15,15 +16,16 @@ function EditPrompt() {
 	const createMutation = useMutation(api.prompts.create);
 	const updateMutation = useMutation(api.prompts.update);
 
-	const [content, setContent] = useState("");
-	const [type, setType] = useState("");
-	const [subType, setSubType] = useState("");
-	const [model, setModel] = useState("");
-	const [isSubmitting, setIsSubmitting] = useState(false);
-
 	const typeOptions = ["daily_planner"];
 	const subTypeOptions = ["system"];
 	const modelOptions = ["gpt-5", "gpt-5-nano"];
+
+	const [content, setContent] = useState("");
+	const [type, setType] = useState("");
+	const [subType, setSubType] = useState("");
+	const [model, setModel] = useState("gpt-5-nano");
+	const [weight, setWeight] = useState<number>(0);
+	const [isSubmitting, setIsSubmitting] = useState(false);
 
 	const isNew = id === "new";
 	const prompt = useQuery(
@@ -36,13 +38,15 @@ function EditPrompt() {
 			setContent(prompt.content);
 			setType(prompt.type || "");
 			setSubType(prompt.subType || "");
-			setModel(prompt.model || "");
+			setModel(prompt.model || "gpt-5-nano");
+			setWeight(prompt.weight || 0);
 		} else if (isNew) {
 			// Reset for new
 			setContent("");
 			setType("");
 			setSubType("");
-			setModel("");
+			setModel("gpt-5-nano");
+			setWeight(0);
 		}
 	}, [prompt, isNew]);
 
@@ -58,6 +62,8 @@ function EditPrompt() {
 			if (isNew) {
 				await createMutation({
 					content,
+					model,
+					weight: toFinite(weight),
 					type: type || undefined,
 					subType: subType || undefined,
 				});
@@ -65,6 +71,8 @@ function EditPrompt() {
 				await updateMutation({
 					promptId: id as Id<"prompts">,
 					content,
+					model,
+					weight: toFinite(weight),
 					type: type || undefined,
 					subType: subType || undefined,
 				});
@@ -161,6 +169,21 @@ function EditPrompt() {
 										</option>
 									))}
 								</select>
+							</div>
+
+							<div>
+								<label
+									htmlFor="subType"
+									className="block font-medium text-gray-700 text-sm dark:text-gray-300"
+								>
+									Weight
+								</label>
+								<input
+									type="number"
+									value={weight}
+									onChange={(e) => setWeight(toFinite(e.target.value))}
+									className="mt-1 block w-full rounded-md border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+								/>
 							</div>
 
 							<div className="flex justify-end space-x-4">

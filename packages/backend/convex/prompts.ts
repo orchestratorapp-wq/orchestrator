@@ -33,6 +33,8 @@ export const get = query({
 export const create = mutation({
 	args: {
 		content: v.string(),
+		weight: v.number(),
+		model: v.union(v.literal("gpt-5"), v.literal("gpt-5-nano"), v.string()),
 		type: v.optional(v.string()),
 		subType: v.optional(v.string()),
 	},
@@ -46,6 +48,8 @@ export const create = mutation({
 		return await ctx.db.insert("prompts", {
 			content: args.content,
 			type: args.type,
+			weight: args.weight,
+			model: args.model,
 			subType: args.subType,
 		});
 	},
@@ -55,6 +59,8 @@ export const update = mutation({
 	args: {
 		promptId: v.id("prompts"),
 		content: v.string(),
+		weight: v.number(),
+		model: v.union(v.literal("gpt-5"), v.literal("gpt-5-nano"), v.string()),
 		type: v.optional(v.string()),
 		subType: v.optional(v.string()),
 	},
@@ -72,6 +78,8 @@ export const update = mutation({
 
 		return ctx.db.patch(args.promptId, {
 			content: args.content,
+			model: args.model,
+			weight: args.weight,
 			type: args.type,
 			subType: args.subType,
 		});
@@ -97,8 +105,8 @@ export const getSystemPrompts = internalQuery({
 		const publicPrompts = await ctx.db
 			.query("prompts")
 			.withIndex("by_sub_type", (q) => q.eq("subType", "system"))
-			.first();
+			.collect();
 
-		return publicPrompts;
+		return publicPrompts.sort((a, b) => b.weight - a.weight);
 	},
 });
