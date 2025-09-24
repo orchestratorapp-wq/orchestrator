@@ -52,8 +52,10 @@ function DeleteProjectModal() {
 			}
 
 			navigate({ to: "/{-$project}", params });
-		} catch (e: any) {
-			setError(e?.message || "Failed to delete project.");
+		} catch (e) {
+			setError(
+				(e as { message: string })?.message || "Failed to delete project.",
+			);
 			setIsDeleting(false);
 		}
 	};
