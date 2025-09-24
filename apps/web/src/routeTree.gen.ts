@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as Char123ProjectChar125RouteImport } from './routes/{-$project}'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as Char123ProjectChar125DeleteRouteImport } from './routes/{-$project}/delete'
 import { Route as AdminPromptsRouteImport } from './routes/admin/prompts'
 import { Route as AdminPromptsIndexRouteImport } from './routes/admin/prompts/index'
 import { Route as AdminPromptsIdRouteImport } from './routes/admin/prompts/$id'
@@ -25,6 +26,12 @@ const AdminRoute = AdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
+const Char123ProjectChar125DeleteRoute =
+  Char123ProjectChar125DeleteRouteImport.update({
+    id: '/delete',
+    path: '/delete',
+    getParentRoute: () => Char123ProjectChar125Route,
+  } as any)
 const AdminPromptsRoute = AdminPromptsRouteImport.update({
   id: '/prompts',
   path: '/prompts',
@@ -43,22 +50,25 @@ const AdminPromptsIdRoute = AdminPromptsIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteWithChildren
-  '/{-$project}': typeof Char123ProjectChar125Route
+  '/{-$project}': typeof Char123ProjectChar125RouteWithChildren
   '/admin/prompts': typeof AdminPromptsRouteWithChildren
+  '/{-$project}/delete': typeof Char123ProjectChar125DeleteRoute
   '/admin/prompts/$id': typeof AdminPromptsIdRoute
   '/admin/prompts/': typeof AdminPromptsIndexRoute
 }
 export interface FileRoutesByTo {
   '/admin': typeof AdminRouteWithChildren
-  '/{-$project}': typeof Char123ProjectChar125Route
+  '/{-$project}': typeof Char123ProjectChar125RouteWithChildren
+  '/{-$project}/delete': typeof Char123ProjectChar125DeleteRoute
   '/admin/prompts/$id': typeof AdminPromptsIdRoute
   '/admin/prompts': typeof AdminPromptsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/admin': typeof AdminRouteWithChildren
-  '/{-$project}': typeof Char123ProjectChar125Route
+  '/{-$project}': typeof Char123ProjectChar125RouteWithChildren
   '/admin/prompts': typeof AdminPromptsRouteWithChildren
+  '/{-$project}/delete': typeof Char123ProjectChar125DeleteRoute
   '/admin/prompts/$id': typeof AdminPromptsIdRoute
   '/admin/prompts/': typeof AdminPromptsIndexRoute
 }
@@ -68,22 +78,29 @@ export interface FileRouteTypes {
     | '/admin'
     | '/{-$project}'
     | '/admin/prompts'
+    | '/{-$project}/delete'
     | '/admin/prompts/$id'
     | '/admin/prompts/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/admin' | '/{-$project}' | '/admin/prompts/$id' | '/admin/prompts'
+  to:
+    | '/admin'
+    | '/{-$project}'
+    | '/{-$project}/delete'
+    | '/admin/prompts/$id'
+    | '/admin/prompts'
   id:
     | '__root__'
     | '/admin'
     | '/{-$project}'
     | '/admin/prompts'
+    | '/{-$project}/delete'
     | '/admin/prompts/$id'
     | '/admin/prompts/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   AdminRoute: typeof AdminRouteWithChildren
-  Char123ProjectChar125Route: typeof Char123ProjectChar125Route
+  Char123ProjectChar125Route: typeof Char123ProjectChar125RouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -101,6 +118,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin'
       preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/{-$project}/delete': {
+      id: '/{-$project}/delete'
+      path: '/delete'
+      fullPath: '/{-$project}/delete'
+      preLoaderRoute: typeof Char123ProjectChar125DeleteRouteImport
+      parentRoute: typeof Char123ProjectChar125Route
     }
     '/admin/prompts': {
       id: '/admin/prompts'
@@ -150,9 +174,22 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
+interface Char123ProjectChar125RouteChildren {
+  Char123ProjectChar125DeleteRoute: typeof Char123ProjectChar125DeleteRoute
+}
+
+const Char123ProjectChar125RouteChildren: Char123ProjectChar125RouteChildren = {
+  Char123ProjectChar125DeleteRoute: Char123ProjectChar125DeleteRoute,
+}
+
+const Char123ProjectChar125RouteWithChildren =
+  Char123ProjectChar125Route._addFileChildren(
+    Char123ProjectChar125RouteChildren,
+  )
+
 const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRouteWithChildren,
-  Char123ProjectChar125Route: Char123ProjectChar125Route,
+  Char123ProjectChar125Route: Char123ProjectChar125RouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -8,7 +8,7 @@ import {
 import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
 import { api } from "@orhcestrator/backend/convex/_generated/api";
 import type { Id } from "@orhcestrator/backend/convex/_generated/dataModel";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
 import { useConvexAuth, useQuery } from "convex/react";
 import { useEffect, useState } from "react";
 import ChatInterface from "@/components/chat-interface";
@@ -49,6 +49,7 @@ function ChatComponent() {
 
 	return (
 		<div>
+			<Outlet />
 			<Dialog
 				open={sidebarOpen}
 				onClose={setSidebarOpen}
@@ -97,18 +98,38 @@ function ChatComponent() {
 										<ul className="-mx-2 space-y-1">
 											{projects?.map((item) =>
 												item.isDefault ? null : (
-													<li key={item.name}>
+													<li key={item._id} className="group relative">
 														<a
 															href={`/${item._id}`}
 															className={cn(
 																item._id === projectPayload?.project?._id
 																	? "bg-gray-50 text-indigo-600 dark:bg-white/5 dark:text-white"
 																	: "text-gray-700 hover:bg-gray-50 hover:text-indigo-600 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white",
-																"group flex gap-x-3 rounded-md p-2 font-semibold text-sm/6",
+																"group flex gap-x-3 rounded-md p-2 pr-8 font-semibold text-sm/6",
 															)}
 														>
 															{item.name}
 														</a>
+														<button
+															type="button"
+															onClick={(e) => {
+																e.preventDefault();
+																e.stopPropagation();
+																navigate({
+																	to: "/{-$project}/delete",
+																	params: { project: projectId },
+																	search: { target: item._id },
+																});
+															}}
+															className="-translate-y-1/2 absolute top-1/2 right-2 rounded p-1 text-gray-400 opacity-0 transition-opacity hover:bg-red-50 hover:text-red-600 group-hover:opacity-100 dark:hover:bg-white/10"
+															aria-label={`Delete ${item.name}`}
+															title="Delete project"
+														>
+															<XMarkIcon
+																aria-hidden="true"
+																className="size-4"
+															/>
+														</button>
 													</li>
 												),
 											)}
@@ -151,16 +172,7 @@ function ChatComponent() {
 				<div className="relative flex grow flex-col gap-y-5 overflow-y-auto border-gray-200 border-r bg-white px-6 dark:border-white/10 dark:bg-gray-900 dark:before:pointer-events-none dark:before:absolute dark:before:inset-0 dark:before:bg-black/10">
 					<div className="relative flex h-16 shrink-0 items-center">
 						<a href="/">
-							<img
-								alt="Your Company"
-								src="https://tailwindcss.com/plus-assets/img/logos/mark.svg?color=indigo&shade=600"
-								className="h-8 w-auto dark:hidden"
-							/>
-							<img
-								alt="Your Company"
-								src="https://tailwindcss.com/plus-assets/img/logos/mark.svg?color=indigo&shade=500"
-								className="not-dark:hidden h-8 w-auto"
-							/>
+							<img alt="Orchestrator" src="/logo.svg" className="h-8 w-auto" />
 						</a>
 					</div>
 					<nav className="relative flex flex-1 flex-col">
@@ -169,18 +181,35 @@ function ChatComponent() {
 								<ul className="-mx-2 space-y-1">
 									{projects?.map((item) =>
 										item.isDefault ? null : (
-											<li key={item.name}>
+											<li key={item._id} className="group relative">
 												<a
 													href={`/${item._id}`}
 													className={cn(
 														item._id === projectPayload?.project?._id
 															? "bg-gray-50 text-indigo-600 dark:bg-white/5 dark:text-white"
 															: "text-gray-700 hover:bg-gray-50 hover:text-indigo-600 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white",
-														"group flex gap-x-3 rounded-md p-2 font-semibold text-sm/6",
+														"group flex gap-x-3 rounded-md p-2 pr-8 font-semibold text-sm/6",
 													)}
 												>
 													{item.name}
 												</a>
+												<button
+													type="button"
+													onClick={(e) => {
+														e.preventDefault();
+														e.stopPropagation();
+														navigate({
+															to: "/{-$project}/delete",
+															params: { project: projectId },
+															search: { target: item._id },
+														});
+													}}
+													className="-translate-y-1/2 absolute top-1/2 right-2 rounded p-1 text-gray-400 opacity-0 transition-opacity hover:bg-red-50 hover:text-red-600 group-hover:opacity-100 dark:hover:bg-white/10"
+													aria-label={`Delete ${item.name}`}
+													title="Delete project"
+												>
+													<XMarkIcon aria-hidden="true" className="size-4" />
+												</button>
 											</li>
 										),
 									)}

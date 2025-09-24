@@ -174,25 +174,23 @@ export const remove = mutation({
 			throw new Error("Cannot delete default project");
 		}
 
-		// Move all chats to default project
-		const defaultProject = await ctx.db
-			.query("projects")
-			.withIndex("by_user_default", (q) =>
-				q.eq("userId", userId).eq("isDefault", true),
-			)
-			.first();
+		// Delete all chats and their messages for this project
+		const chats = await ctx.db
+			.query("chats")
+			.withIndex("by_project", (q) => q.eq("projectId", args.projectId))
+			.collect();
 
-		if (defaultProject) {
-			const chats = await ctx.db
-				.query("chats")
-				.withIndex("by_project", (q) => q.eq("projectId", args.projectId))
+		for (const chat of chats) {
+			const messages = await ctx.db
+				.query("messages")
+				.withIndex("by_chat", (q) => q.eq("chatId", chat._id))
 				.collect();
 
-			for (const chat of chats) {
-				await ctx.db.patch(chat._id, {
-					projectId: defaultProject._id,
-				});
+			for (const message of messages) {
+				await ctx.db.delete(message._id);
 			}
+
+			await ctx.db.delete(chat._id);
 		}
 
 		await ctx.db.delete(args.projectId);
