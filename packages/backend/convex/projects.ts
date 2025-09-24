@@ -1,5 +1,6 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
+import type { Id } from "./_generated/dataModel";
 import { internalMutation, mutation, query } from "./_generated/server";
 
 export const list = query({
@@ -22,40 +23,44 @@ export const list = query({
 
 export const single = query({
 	args: {
-		projectId: v.optional(v.id("projects")),
+		projectId: v.optional(v.string()),
 	},
 	handler: async (ctx, args) => {
-		const userId = await getAuthUserId(ctx);
+		try {
+			const userId = await getAuthUserId(ctx);
 
-		// For anonymous users, create a temporary default project
-		if (!userId) {
-			return null;
-		}
+			// For anonymous users, create a temporary default project
+			if (!userId) {
+				return null;
+			}
 
-		if (!args.projectId) {
-			const project = await ctx.db
-				.query("projects")
-				.withSearchIndex("search_name", (q) =>
-					q.search("name", "default").eq("userId", userId),
-				)
+			if (!args.projectId) {
+				const project = await ctx.db
+					.query("projects")
+					.withSearchIndex("search_name", (q) =>
+						q.search("name", "default").eq("userId", userId),
+					)
+					.first();
+
+				return project ? { project } : null;
+			}
+
+			const project = await ctx.db.get(args.projectId as Id<"projects">);
+
+			if (!project || project.userId !== userId) {
+				return null;
+			}
+
+			const chat = await ctx.db
+				.query("chats")
+				.withIndex("by_project", (q) => q.eq("projectId", project._id))
+				.order("desc")
 				.first();
 
-			return project ? { project } : null;
-		}
-
-		const project = await ctx.db.get(args.projectId);
-
-		if (!project || project.userId !== userId) {
+			return { project, chat };
+		} catch {
 			return null;
 		}
-
-		const chat = await ctx.db
-			.query("chats")
-			.withIndex("by_project", (q) => q.eq("projectId", project._id))
-			.order("desc")
-			.first();
-
-		return { project, chat };
 	},
 });
 
