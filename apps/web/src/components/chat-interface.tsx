@@ -5,6 +5,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useAction, useQuery } from "convex/react";
 import { Send } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import SafeMarkdown from "@/components/safe-markdown";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -83,7 +84,7 @@ export default function ChatInterface({
 							<div className="mb-1 text-gray-500 text-sm">
 								{msg.role === "user" ? "You" : "AI"}
 							</div>
-							<div>{msg.content}</div>
+							<SafeMarkdown>{msg.content}</SafeMarkdown>
 						</div>
 					))
 				)}

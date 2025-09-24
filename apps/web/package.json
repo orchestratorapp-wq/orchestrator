@@ -11,6 +11,9 @@
 		"cf-typegen": "wrangler types --env-interface Env"
 	},
 	"dependencies": {
+		"react-markdown": "10.1.0",
+		"remark-gfm": "4.0.1",
+		"rehype-sanitize": "6.0.0",
 		"@auth/core": "0.40.0",
 		"@ai-sdk/react": "2.0.47",
 		"@convex-dev/auth": "latest",
