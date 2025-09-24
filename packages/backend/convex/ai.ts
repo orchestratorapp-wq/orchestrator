@@ -160,6 +160,8 @@ Rules:
 					messageId: args.messageId,
 					content: responseContent,
 				});
+
+				return { project: project?._id as string };
 			} catch (parseError) {
 				console.error("Error parsing AI response as JSON:", parseError);
 				await ctx.runMutation(api.messages.saveResponse, {
