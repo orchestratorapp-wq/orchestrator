@@ -36,73 +36,106 @@ export const generateResponse = internalAction({
 		const baseContent =
 			"You are an AI assistant that helps create beautiful daily plans. When responding, consider how your response could be structured as a well-organized daily plan. Provide clear, actionable information that can be easily converted into structured daily tasks, schedules, goals, and reflections. Structure your responses with clear sections like Morning Routine, Work Tasks, Evening Wind-down, Goals for Tomorrow, etc. Focus on creating meaningful, balanced daily plans that promote productivity and well-being.";
 
-		// Adjusted project-specific instructions to enforce extraction and updates for project name and lexical state
-		const projectInstructions = args.project
-			? `Analyze the conversation and update the project name and lexical_state if needed. Infer changes from user input, like new themes or tasks.
-
-The lexical_state must be extremely well-formatted Markdown, representing the entire project's plan. Use clear headings, bullet points, and subheadings for structure. Ensure it is concise, readable, and free of errors. Do not include any content in the response that duplicates or references the lexical_state directly.
-
-Build incrementally from the current state, appending new sections only when relevant, and maintain a cohesive plan.
-
-Output JSON with:
-
-{
-  "response": "Conversational reply as a daily plan, without repeating any part of the lexical_state.",
-  "project_update": {
-    "name": "Updated or current name",
-    "lexical_state": "Full Markdown string for the project plan"
-  }
-}
-
-Rules:
-- Output valid JSON only.
-- 'lexical_state' as Markdown string (never null).
-- Infer name and build plan from chat.
-- Ensure lexical_state is always well-formatted and complete Markdown.`
-			: `
-Infer project name and structure from conversation.
-
-The lexical_state must be extremely well-formatted Markdown. Use clear headings, bullet points, and subheadings for structure. Ensure it is concise, readable, and free of errors. Do not include any content in the response that duplicates or references the lexical_state directly.
-
-Output JSON:
-
-{
-  "response": "Reply as a daily plan, without repeating any part of the lexical_state.",
-  "project_update": {
-    "name": "Inferred name",
-    "lexical_state": "Markdown string"
-  }
-}
-
-Rules:
-- Output valid JSON only.
-- 'lexical_state' as Markdown string.`;
-
 		// Add system prompt for daily planning with project context
 		const systemPrompt = {
 			role: "system" as const,
-			content: `
-			${systemPrompts?.[0]?.content || baseContent}
-      Your current knowledge of the project "${args.project?.name}" is: ${currentLexicalState}
-      ${systemPrompts?.[1]?.content || projectInstructions}
-`,
+			content: systemPrompts?.[0]?.content || baseContent,
 		};
 
 		try {
 			const response = await openai.chat.completions.create({
 				model: systemPrompts?.[0]?.model || "gpt-5-nano",
 				messages: [systemPrompt, ...conversation],
+				tools: [
+					{
+						type: "function",
+						function: {
+							name: "return_plan",
+							description: "Return exactly the structured daily plan JSON.",
+							parameters: {
+								type: "object",
+								additionalProperties: false,
+								properties: {
+									response: {
+										type: "string",
+										description:
+											"Conversational reply as a daily plan, without repeating any part of the lexical_state, this can be markdown with beutiful formating as needed",
+									},
+									project_update: {
+										type: "object",
+										additionalProperties: false,
+										properties: {
+											name: {
+												type: "string",
+												description: "Updated or current name",
+											},
+											lexical_state: {
+												type: "string",
+												description:
+													"Full Markdown string for the project plan, must be beautifully formatted with proper headings and subheadings, lists and all that markdown supports.",
+											},
+										},
+										required: ["name", "lexical_state"],
+									},
+								},
+								required: ["response", "project_update"],
+							},
+						},
+					},
+				],
+				tool_choice: { type: "function", function: { name: "return_plan" } },
 			});
 
-			const content = response.choices[0]?.message?.content;
-			if (!content) {
+			const choice = response.choices?.[0];
+			const toolCall = choice?.message?.tool_calls?.[0];
+			const content = choice?.message?.content;
+
+			if (!toolCall && !content) {
 				throw new Error("No response from AI");
 			}
 
 			// Parse AI response for project updates
 			try {
-				const parsed = JSON.parse(content);
-				const responseContent = parsed.response || content;
+				let parsed:
+					| {
+							response?: string;
+							project_update?: { name?: string; lexical_state?: string };
+					  }
+					| undefined;
+
+				if (
+					toolCall &&
+					toolCall.type === "function" &&
+					toolCall.function?.name === "return_plan"
+				) {
+					try {
+						parsed = JSON.parse(toolCall.function.arguments);
+					} catch (e) {
+						console.error(
+							"Invalid JSON in function arguments:",
+							toolCall.function.arguments,
+							e,
+						);
+					}
+				}
+
+				if (!parsed && typeof content === "string") {
+					try {
+						parsed = JSON.parse(content);
+					} catch (_e) {
+						// fall through; we'll save raw content below
+					}
+				}
+
+				if (!parsed) {
+					await ctx.runMutation(api.messages.saveResponse, {
+						messageId: args.messageId,
+						content: content || "",
+					});
+					return { project: args.project?._id as string };
+				}
+
+				const responseContent = parsed.response || content || "";
 				const projectUpdate = parsed.project_update || {};
 				const chat = args.chat;
 				let project = args.project;
@@ -166,7 +199,7 @@ Rules:
 				console.error("Error parsing AI response as JSON:", parseError);
 				await ctx.runMutation(api.messages.saveResponse, {
 					messageId: args.messageId,
-					content,
+					content: content || "",
 				});
 			}
 		} catch (error) {
