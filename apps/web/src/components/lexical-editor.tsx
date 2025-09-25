@@ -95,7 +95,7 @@ export default function LexicalEditorComponent({
 				>
 					<RichTextPlugin
 						contentEditable={
-							<ContentEditable className="min-h-[350px] outline-none" />
+							<ContentEditable className="prose prose-sm dark:prose-invert min-h-[350px] max-w-none break-words outline-none" />
 						}
 						placeholder={
 							<div className="absolute top-4 left-4 text-gray-400">
