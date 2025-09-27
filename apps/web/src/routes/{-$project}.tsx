@@ -186,7 +186,7 @@ function ChatComponent() {
 													href={`/${item._id}`}
 													className={cn(
 														item._id === projectPayload?.project?._id
-															? "dark:bg.white/5 bg-gray-50 text-indigo-600 dark:text-white"
+															? "bg-gray-50 text-indigo-600 dark:bg-white/5 dark:text-white"
 															: "text-gray-700 hover:bg-gray-50 hover:text-indigo-600 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white",
 														"group flex gap-x-3 rounded-md p-2 pr-8 font-semibold text-sm/6",
 													)}
