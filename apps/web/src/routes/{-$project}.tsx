@@ -186,7 +186,7 @@ function ChatComponent() {
 													href={`/${item._id}`}
 													className={cn(
 														item._id === projectPayload?.project?._id
-															? "bg-gray-50 text-indigo-600 dark:bg-white/5 dark:text-white"
+															? "dark:bg.white/5 bg-gray-50 text-indigo-600 dark:text-white"
 															: "text-gray-700 hover:bg-gray-50 hover:text-indigo-600 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white",
 														"group flex gap-x-3 rounded-md p-2 pr-8 font-semibold text-sm/6",
 													)}
@@ -267,46 +267,51 @@ function ChatComponent() {
 				<UserProfileDropdown user={user} signOut={signOut} />
 			</div>
 
+			{/* Main: keep w-72 sidebar, equal Chat and Lexical via simple flex */}
 			<main className="lg:pl-72">
-				<div className="xl:pr-96">
-					<div className="relative h-screen w-full pt-16 lg:pt-0">
-						{isAuthenticated ? null : isLoading ? (
-							<div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50">
-								<div className="flex w-96 max-w-full flex-col items-center rounded-lg border border-gray-200 bg-white p-8 shadow-lg dark:border-gray-700 dark:bg-gray-800">
-									<h2 className="text-center font-bold text-2xl text-gray-900 dark:text-white">
-										Loading…
-									</h2>
+				<div className="relative h-screen w-full">
+					<div className="flex h-full">
+						{/* Chat column */}
+						<div className="relative flex-1 overflow-hidden pt-16 lg:pt-0">
+							{isAuthenticated ? null : isLoading ? (
+								<div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50">
+									<div className="flex w-96 max-w-full flex-col items-center rounded-lg border border-gray-200 bg-white p-8 shadow-lg dark:border-gray-700 dark:bg-gray-800">
+										<h2 className="text-center font-bold text-2xl text-gray-900 dark:text-white">
+											Loading…
+										</h2>
+									</div>
 								</div>
-							</div>
-						) : (
-							<div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50">
-								<div className="flex w-96 max-w-full flex-col items-center rounded-lg border border-gray-200 bg-white p-8 shadow-lg dark:border-gray-700 dark:bg-gray-800">
-									<h2 className="mb-4 text-center font-bold text-2xl text-gray-900 dark:text-white">
-										Authenticate
-									</h2>
-									<button
-										type="button"
-										onClick={() => signIn("google")}
-										className="cursor-pointer rounded-md bg-indigo-600 px-3.5 py-2.5 font-semibold text-sm text-white shadow-xs hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-indigo-600 focus-visible:outline-offset-2 dark:bg-indigo-500 dark:shadow-none dark:focus-visible:outline-indigo-500 dark:hover:bg-indigo-400"
-									>
-										<span>Sign in with Google</span>
-									</button>
+							) : (
+								<div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50">
+									<div className="flex w-96 max-w-full flex-col items-center rounded-lg border border-gray-200 bg-white p-8 shadow-lg dark:border-gray-700 dark:bg-gray-800">
+										<h2 className="mb-4 text-center font-bold text-2xl text-gray-900 dark:text-white">
+											Authenticate
+										</h2>
+										<button
+											type="button"
+											onClick={() => signIn("google")}
+											className="cursor-pointer rounded-md bg-indigo-600 px-3.5 py-2.5 font-semibold text-sm text-white shadow-xs hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-indigo-600 focus-visible:outline-offset-2 dark:bg-indigo-500 dark:shadow-none dark:focus-visible:outline-indigo-500 dark:hover:bg-indigo-400"
+										>
+											<span>Sign in with Google</span>
+										</button>
+									</div>
 								</div>
-							</div>
-						)}
-						<ChatInterface
-							projectId={projectPayload?.project?._id}
-							chatId={projectPayload?.chat?._id || "default"}
-						/>
+							)}
+							<ChatInterface
+								projectId={projectPayload?.project?._id}
+								chatId={projectPayload?.chat?._id || "default"}
+							/>
+						</div>
+
+						{/* Lexical column */}
+						<div className="hidden h-full flex-1 overflow-auto border-gray-200 border-l px-4 py-6 sm:px-6 lg:flex lg:px-8 dark:border-white/10">
+							<LexicalEditorComponent
+								content={projectPayload?.project?.lexicalState?.trim?.()}
+							/>
+						</div>
 					</div>
 				</div>
 			</main>
-
-			<aside className="fixed inset-y-0 right-0 hidden w-96 overflow-y-auto border-gray-200 border-l px-4 py-6 sm:px-6 lg:px-8 xl:block dark:border-white/10">
-				<LexicalEditorComponent
-					content={projectPayload?.project?.lexicalState?.trim?.()}
-				/>
-			</aside>
 		</div>
 	);
 }
