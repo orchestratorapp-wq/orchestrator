@@ -10,6 +10,7 @@
 		"includes": [
 			"**",
 			"!apps/web/src/index.css",
+			"!packages/backend/convex/_generated",
 			"!**/.next",
 			"!**/dist",
 			"!**/.turbo",

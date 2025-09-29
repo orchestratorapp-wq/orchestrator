@@ -15,11 +15,12 @@
 	},
 	"dependencies": {
 		"@auth/core": "0.40.0",
-		"@convex-dev/auth": "latest",
-		"convex": "1.27.1",
-		"convex-helpers": "^0.1.104",
-		"@convex-dev/persistent-text-streaming": "0.2.3",
+		"convex": "1.27.3",
+		"convex-helpers": "0.1.104",
 		"@convex-dev/action-retrier": "0.2.1",
-		"openai": "5.21.0"
+		"@convex-dev/agent": "0.2.10",
+		"@convex-dev/auth": "0.0.90",
+		"@convex-dev/persistent-text-streaming": "0.2.3",
+		"openai": "5.23.1"
 	}
 }
