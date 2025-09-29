@@ -1,5 +1,5 @@
 {
-	"$schema": "./node_modules/wrangler/config-schema.json",
+	"$schema": "../../node_modules/wrangler/config-schema.json",
 	"name": "orchestrator",
 	"main": ".output/server/index.mjs",
 	"workers_dev": false,
