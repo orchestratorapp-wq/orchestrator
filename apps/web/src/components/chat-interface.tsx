@@ -67,16 +67,16 @@ export default function ChatInterface({
 
 			{/* Messages */}
 			<div className="flex-1 space-y-4 overflow-y-auto p-4">
-				{!messages ? (
+				{!messages && chatId ? (
 					<div className="mt-8 text-center text-gray-500">
 						Loading messages...
 					</div>
-				) : messages.length === 0 ? (
+				) : messages && messages.length === 0 ? (
 					<div className="mt-8 text-center text-gray-500">
 						No messages yet. Start a conversation!
 					</div>
 				) : (
-					messages.map((msg) => (
+					messages?.map((msg) => (
 						<div
 							key={msg._id}
 							className={`rounded-lg p-3 ${
