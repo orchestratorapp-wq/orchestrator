@@ -18,6 +18,8 @@
 		"@convex-dev/auth": "latest",
 		"convex": "1.27.1",
 		"convex-helpers": "^0.1.104",
+		"@convex-dev/persistent-text-streaming": "0.2.3",
+		"@convex-dev/action-retrier": "0.2.1",
 		"openai": "5.21.0"
 	}
 }

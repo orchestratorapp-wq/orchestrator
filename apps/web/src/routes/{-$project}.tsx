@@ -26,6 +26,7 @@ function ChatComponent() {
 	const { signIn, signOut } = useAuthActions();
 	const { isLoading, isAuthenticated } = useConvexAuth();
 	const [sidebarOpen, setSidebarOpen] = useState(false);
+
 	const user = useQuery(api.auth.loggedInUser, isAuthenticated ? {} : "skip");
 	const projects = useQuery(api.projects.list, isAuthenticated ? {} : "skip");
 	const projectPayload = useQuery(

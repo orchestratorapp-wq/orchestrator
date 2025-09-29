@@ -17,27 +17,9 @@ export const list = query({
 			return [];
 		}
 
-		let chatId = args.chatId;
+		const chatId = args.chatId;
 		if (typeof chatId === "string" && chatId === "default") {
-			const defaultProject = await ctx.db
-				.query("projects")
-				.withIndex("by_user_default", (q) =>
-					q.eq("userId", userId).eq("isDefault", true),
-				)
-				.first();
-			if (!defaultProject) {
-				// console.log("_no_default_project_", args);
-				return [];
-			}
-			const chat = await ctx.db
-				.query("chats")
-				.withIndex("by_project", (q) => q.eq("projectId", defaultProject._id))
-				.first();
-			if (!chat) {
-				console.log("_no_chat_", chat, defaultProject);
-				return [];
-			}
-			chatId = chat._id;
+			return [];
 		}
 
 		const chat: Doc<"chats"> | null = await ctx.db.get(chatId);

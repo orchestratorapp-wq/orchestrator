@@ -35,14 +35,7 @@ export const single = query({
 			}
 
 			if (!args.projectId) {
-				const project = await ctx.db
-					.query("projects")
-					.withSearchIndex("search_name", (q) =>
-						q.search("name", "default").eq("userId", userId),
-					)
-					.first();
-
-				return project ? { project } : null;
+				return null;
 			}
 
 			const project = await ctx.db.get(args.projectId as Id<"projects">);

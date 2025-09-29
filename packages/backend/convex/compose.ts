@@ -1,8 +1,15 @@
+import { ActionRetrier } from "@convex-dev/action-retrier";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
-import { internal } from "./_generated/api";
+import { components, internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { action, internalMutation, internalQuery } from "./_generated/server";
+
+const retrier = new ActionRetrier(components.actionRetrier, {
+	initialBackoffMs: 10000,
+	base: 10,
+	maxFailures: 4,
+});
 
 export const listChat = internalQuery({
 	args: { chatId: v.id("chats") },
@@ -18,6 +25,8 @@ export const listChat = internalQuery({
 export const composeMessage = action({
 	args: {
 		content: v.string(),
+		// Keep accepting "default" for backward compatibility with the UI,
+		// but we'll resolve it here without relying on default project behavior.
 		chatId: v.optional(v.union(v.id("chats"), v.literal("default"))),
 		projectId: v.optional(v.id("projects")),
 	},
@@ -28,36 +37,83 @@ export const composeMessage = action({
 			throw new Error("Authentication required");
 		}
 
+		// Resolve project/chat up-front. If neither is provided (or chatId is "default"),
+		// immediately create an "untitled" project + initial chat and return that project id.
+		let resolvedProjectId = args.projectId as Id<"projects"> | undefined;
+		let resolvedChatId: Id<"chats"> | undefined;
+
+		let createdProject: Doc<"projects"> | null = null;
+		let createdChat: Doc<"chats"> | null = null;
+
+		if (args.chatId && args.chatId !== "default") {
+			resolvedChatId = args.chatId as Id<"chats">;
+		}
+
+		if (!resolvedProjectId && !resolvedChatId) {
+			// Create a brand new project + chat right away
+			const created = await ctx.runMutation(
+				internal.projects.createProjectInternal,
+				{
+					userId,
+					name: "untitled",
+				},
+			);
+
+			if (!created || !created.project?._id || !created.chat?._id) {
+				throw new Error("Failed to create a new project");
+			}
+
+			createdProject = created.project as Doc<"projects">;
+			createdChat = created.chat as Doc<"chats">;
+
+			resolvedProjectId = createdProject._id as Id<"projects">;
+			resolvedChatId = createdChat._id as Id<"chats">;
+		}
+
+		// Insert the user's message (and placeholder assistant message).
+		// If chatId is missing but projectId is present, `send` will create a chat for that project.
 		const sendPayload = await ctx.runMutation(internal.compose.send, {
 			userId,
 			content: args.content,
-			chatId: args.chatId,
-			projectId: args.projectId,
+			chatId: resolvedChatId,
+			projectId: resolvedProjectId,
 		});
 
-		const { chat, project } = await ctx.runQuery(
-			internal.messages.getChatAndProject,
-			{
-				chatId: sendPayload.resolvedChatId,
-				projectId: args.projectId,
-			},
-		);
+		// Prepare data for AI generation (fire-and-forget).
+		let chat: Doc<"chats"> | null = createdChat;
+		let project: Doc<"projects"> | null = createdProject;
 
-		if (!chat) {
-			throw new Error("Chat not found");
+		if (!chat || !project) {
+			const fetched = await ctx.runQuery(internal.messages.getChatAndProject, {
+				chatId: sendPayload.resolvedChatId,
+				projectId: resolvedProjectId,
+			});
+			chat = fetched.chat as Doc<"chats"> | null;
+			project = fetched.project as Doc<"projects"> | null;
 		}
 
-		const response: { project?: string } = await ctx.runAction(
-			internal.ai.generateResponse,
-			{
+		// Trigger AI generation in the background without blocking the response.
+		if (chat) {
+			await retrier.run(ctx, internal.ai.generateResponse, {
 				messageId: sendPayload.placeholderMessageId,
 				chat,
 				project,
 				userId,
-			},
-		);
+			});
+		}
 
-		return response;
+		const projectIdToReturn = (resolvedProjectId ??
+			project?._id ??
+			(chat ? (chat.projectId as Id<"projects">) : undefined)) as
+			| Id<"projects">
+			| undefined;
+
+		if (!projectIdToReturn) {
+			throw new Error("Project resolution failed");
+		}
+
+		// Return the project id immediately so the client can redirect without waiting for AI.
+		return { project: projectIdToReturn };
 	},
 });
 
@@ -65,7 +121,8 @@ export const send = internalMutation({
 	args: {
 		userId: v.id("users"),
 		content: v.string(),
-		chatId: v.optional(v.union(v.id("chats"), v.literal("default"))),
+		// Remove "default" handling. Either chatId or projectId must be provided now.
+		chatId: v.optional(v.id("chats")),
 		projectId: v.optional(v.id("projects")),
 	},
 	returns: {
@@ -76,56 +133,23 @@ export const send = internalMutation({
 		let resolvedChatId: Id<"chats"> | null = null;
 
 		if (args.chatId) {
-			if (typeof args.chatId === "string" && args.chatId === "default") {
-				// Resolve to the default chat
-				const defaultProject = await ctx.db
-					.query("projects")
-					.withIndex("by_user_default", (q) =>
-						q.eq("userId", args.userId).eq("isDefault", true),
-					)
-					.first();
-
-				if (defaultProject) {
-					const chat = await ctx.db
-						.query("chats")
-						.withIndex("by_project", (q) =>
-							q.eq("projectId", defaultProject._id),
-						)
-						.first();
-					if (chat) {
-						resolvedChatId = chat._id;
-					}
-				}
-			} else {
-				resolvedChatId = args.chatId as Id<"chats">;
+			resolvedChatId = args.chatId as Id<"chats">;
+		} else {
+			if (!args.projectId) {
+				throw new Error("Project or chatId required");
 			}
-		}
 
-		let projectIdToUse = args.projectId;
-		if (!resolvedChatId) {
-			if (!projectIdToUse) {
-				const defaultProject = await ctx.db
-					.query("projects")
-					.withIndex("by_user_default", (q) =>
-						q.eq("userId", args.userId).eq("isDefault", true),
-					)
-					.first();
-
-				if (defaultProject) {
-					projectIdToUse = defaultProject._id;
-				} else {
-					projectIdToUse = await ctx.db.insert("projects", {
-						name: "Default Project",
-						description: "Your default project for daily planning",
-						userId: args.userId,
-						isDefault: true,
-					});
-				}
+			const project = await ctx.db.get(args.projectId);
+			if (!project) {
+				throw new Error("Project not found");
+			}
+			if (project.userId !== args.userId) {
+				throw new Error("Not authorized");
 			}
 
 			resolvedChatId = await ctx.db.insert("chats", {
 				userId: args.userId,
-				projectId: projectIdToUse,
+				projectId: args.projectId,
 			});
 		}
 
@@ -158,8 +182,8 @@ export const send = internalMutation({
 		});
 
 		return {
-			placeholderMessageId: placeholderMessageId,
-			resolvedChatId: resolvedChatId,
+			placeholderMessageId,
+			resolvedChatId,
 		};
 	},
 });
