@@ -293,7 +293,7 @@ function ChatComponent() {
 							)}
 							<ChatInterface
 								projectId={projectPayload?.project?._id}
-								chatId={projectPayload?.chat?._id || "default"}
+								chatId={projectPayload?.chat?._id}
 							/>
 						</div>
 

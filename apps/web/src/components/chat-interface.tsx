@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 interface ChatInterfaceProps {
-	chatId: string;
+	chatId?: string;
 	projectId?: string;
 }
 
@@ -24,9 +24,14 @@ export default function ChatInterface({
 	const messagesEndRef = useRef<HTMLDivElement>(null);
 
 	// Query messages for the current chat
-	const messages = useQuery(api.messages.list, {
-		chatId: chatId as Id<"chats">,
-	});
+	const messages = useQuery(
+		api.messages.list,
+		!chatId
+			? "skip"
+			: {
+					chatId: chatId as Id<"chats">,
+				},
+	);
 
 	// Mutation to send message
 	const sendMessage = useAction(api.compose.composeMessage);
