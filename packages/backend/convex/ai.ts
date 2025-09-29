@@ -147,7 +147,7 @@ export const generateResponse = internalAction({
 					args,
 				});
 
-				if (!args.project || args.project.isDefault) {
+				if (!args.project) {
 					if (typeof projectUpdate.name === "string") {
 						const createdProjectPayload = await ctx.runMutation(
 							internal.projects.createProjectInternal,

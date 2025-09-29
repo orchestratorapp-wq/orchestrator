@@ -31,7 +31,7 @@ function ChatComponent() {
 	const projects = useQuery(api.projects.list, isAuthenticated ? {} : "skip");
 	const projectPayload = useQuery(
 		api.projects.single,
-		isAuthenticated
+		isAuthenticated && projectId
 			? {
 					projectId: projectId as Id<"projects">,
 				}
@@ -97,43 +97,38 @@ function ChatComponent() {
 								<ul className="flex flex-1 flex-col gap-y-7">
 									<li>
 										<ul className="-mx-2 space-y-1">
-											{projects?.map((item) =>
-												item.isDefault ? null : (
-													<li key={item._id} className="group relative">
-														<a
-															href={`/${item._id}`}
-															className={cn(
-																item._id === projectPayload?.project?._id
-																	? "bg-gray-50 text-indigo-600 dark:bg-white/5 dark:text-white"
-																	: "text-gray-700 hover:bg-gray-50 hover:text-indigo-600 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white",
-																"group flex gap-x-3 rounded-md p-2 pr-8 font-semibold text-sm/6",
-															)}
-														>
-															{item.name}
-														</a>
-														<button
-															type="button"
-															onClick={(e) => {
-																e.preventDefault();
-																e.stopPropagation();
-																navigate({
-																	to: "/{-$project}/delete",
-																	params: { project: projectId },
-																	search: { target: item._id },
-																});
-															}}
-															className="-translate-y-1/2 absolute top-1/2 right-2 rounded p-1 text-gray-400 opacity-0 transition-opacity hover:bg-red-50 hover:text-red-600 group-hover:opacity-100 dark:hover:bg-white/10"
-															aria-label={`Delete ${item.name}`}
-															title="Delete project"
-														>
-															<XMarkIcon
-																aria-hidden="true"
-																className="size-4"
-															/>
-														</button>
-													</li>
-												),
-											)}
+											{projects?.map((item) => (
+												<li key={item._id} className="group relative">
+													<a
+														href={`/${item._id}`}
+														className={cn(
+															item._id === projectPayload?.project?._id
+																? "bg-gray-50 text-indigo-600 dark:bg-white/5 dark:text-white"
+																: "text-gray-700 hover:bg-gray-50 hover:text-indigo-600 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white",
+															"group flex gap-x-3 rounded-md p-2 pr-8 font-semibold text-sm/6",
+														)}
+													>
+														{item.name}
+													</a>
+													<button
+														type="button"
+														onClick={(e) => {
+															e.preventDefault();
+															e.stopPropagation();
+															navigate({
+																to: "/{-$project}/delete",
+																params: { project: projectId },
+																search: { target: item._id },
+															});
+														}}
+														className="-translate-y-1/2 absolute top-1/2 right-2 rounded p-1 text-gray-400 opacity-0 transition-opacity hover:bg-red-50 hover:text-red-600 group-hover:opacity-100 dark:hover:bg-white/10"
+														aria-label={`Delete ${item.name}`}
+														title="Delete project"
+													>
+														<XMarkIcon aria-hidden="true" className="size-4" />
+													</button>
+												</li>
+											))}
 										</ul>
 									</li>
 									<li className="-mx-2 mt-auto">
@@ -180,40 +175,38 @@ function ChatComponent() {
 						<ul className="flex flex-1 flex-col gap-y-7">
 							<li>
 								<ul className="-mx-2 space-y-1">
-									{projects?.map((item) =>
-										item.isDefault ? null : (
-											<li key={item._id} className="group relative">
-												<a
-													href={`/${item._id}`}
-													className={cn(
-														item._id === projectPayload?.project?._id
-															? "bg-gray-50 text-indigo-600 dark:bg-white/5 dark:text-white"
-															: "text-gray-700 hover:bg-gray-50 hover:text-indigo-600 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white",
-														"group flex gap-x-3 rounded-md p-2 pr-8 font-semibold text-sm/6",
-													)}
-												>
-													{item.name}
-												</a>
-												<button
-													type="button"
-													onClick={(e) => {
-														e.preventDefault();
-														e.stopPropagation();
-														navigate({
-															to: "/{-$project}/delete",
-															params: { project: projectId },
-															search: { target: item._id },
-														});
-													}}
-													className="-translate-y-1/2 absolute top-1/2 right-2 rounded p-1 text-gray-400 opacity-0 transition-opacity hover:bg-red-50 hover:text-red-600 group-hover:opacity-100 dark:hover:bg-white/10"
-													aria-label={`Delete ${item.name}`}
-													title="Delete project"
-												>
-													<XMarkIcon aria-hidden="true" className="size-4" />
-												</button>
-											</li>
-										),
-									)}
+									{projects?.map((item) => (
+										<li key={item._id} className="group relative">
+											<a
+												href={`/${item._id}`}
+												className={cn(
+													item._id === projectPayload?.project?._id
+														? "bg-gray-50 text-indigo-600 dark:bg-white/5 dark:text-white"
+														: "text-gray-700 hover:bg-gray-50 hover:text-indigo-600 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white",
+													"group flex gap-x-3 rounded-md p-2 pr-8 font-semibold text-sm/6",
+												)}
+											>
+												{item.name}
+											</a>
+											<button
+												type="button"
+												onClick={(e) => {
+													e.preventDefault();
+													e.stopPropagation();
+													navigate({
+														to: "/{-$project}/delete",
+														params: { project: projectId },
+														search: { target: item._id },
+													});
+												}}
+												className="-translate-y-1/2 absolute top-1/2 right-2 rounded p-1 text-gray-400 opacity-0 transition-opacity hover:bg-red-50 hover:text-red-600 group-hover:opacity-100 dark:hover:bg-white/10"
+												aria-label={`Delete ${item.name}`}
+												title="Delete project"
+											>
+												<XMarkIcon aria-hidden="true" className="size-4" />
+											</button>
+										</li>
+									))}
 								</ul>
 							</li>
 							<li className="-mx-2 mt-auto">

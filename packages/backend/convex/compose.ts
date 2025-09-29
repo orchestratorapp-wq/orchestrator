@@ -27,7 +27,7 @@ export const composeMessage = action({
 		content: v.string(),
 		// Keep accepting "default" for backward compatibility with the UI,
 		// but we'll resolve it here without relying on default project behavior.
-		chatId: v.optional(v.union(v.id("chats"), v.literal("default"))),
+		chatId: v.optional(v.id("chats")),
 		projectId: v.optional(v.id("projects")),
 	},
 	handler: async (ctx, args) => {

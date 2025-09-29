@@ -8,7 +8,6 @@ export const list = query({
 	handler: async (ctx) => {
 		const userId = await getAuthUserId(ctx);
 
-		// For anonymous users, create a temporary default project
 		if (!userId) {
 			return [];
 		}
@@ -29,7 +28,6 @@ export const single = query({
 		try {
 			const userId = await getAuthUserId(ctx);
 
-			// For anonymous users, create a temporary default project
 			if (!userId) {
 				return null;
 			}
@@ -57,55 +55,6 @@ export const single = query({
 	},
 });
 
-export const getDefault = query({
-	args: {},
-	handler: async (ctx) => {
-		const userId = await getAuthUserId(ctx);
-
-		// For anonymous users, return a virtual default project
-		if (!userId) {
-			throw new Error("Not authenticated");
-		}
-
-		const defaultProject = await ctx.db
-			.query("projects")
-			.withIndex("by_user_default", (q) =>
-				q.eq("userId", userId).eq("isDefault", true),
-			)
-			.first();
-		return defaultProject;
-	},
-});
-
-export const ensureDefault = mutation({
-	args: {},
-	handler: async (ctx) => {
-		const userId = await getAuthUserId(ctx);
-		if (!userId) {
-			throw new Error("Not authenticated");
-		}
-
-		let defaultProject = await ctx.db
-			.query("projects")
-			.withIndex("by_user_default", (q) =>
-				q.eq("userId", userId).eq("isDefault", true),
-			)
-			.first();
-
-		if (!defaultProject) {
-			const projectId = await ctx.db.insert("projects", {
-				name: "Default Project",
-				description: "Your default project",
-				userId,
-				isDefault: true,
-			});
-			defaultProject = await ctx.db.get(projectId);
-		}
-
-		return defaultProject;
-	},
-});
-
 export const create = mutation({
 	args: {
 		name: v.string(),
@@ -121,7 +70,6 @@ export const create = mutation({
 			name: args.name,
 			description: args.description,
 			userId,
-			isDefault: false,
 		});
 	},
 });
@@ -161,10 +109,6 @@ export const remove = mutation({
 		const project = await ctx.db.get(args.projectId);
 		if (!project || project.userId !== userId) {
 			throw new Error("Project not found");
-		}
-
-		if (project.isDefault) {
-			throw new Error("Cannot delete default project");
 		}
 
 		// Delete all chats and their messages for this project

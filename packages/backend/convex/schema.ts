@@ -14,7 +14,6 @@ const applicationTables = {
 		lexicalState: v.optional(v.string()),
 	})
 		.index("by_user", ["userId"])
-		.index("by_user_default", ["userId", "isDefault"])
 		.searchIndex("search_name", {
 			searchField: "name",
 			filterFields: ["userId"],
