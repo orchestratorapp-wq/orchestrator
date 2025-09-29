@@ -11,7 +11,7 @@ export const generateResponse = internalAction({
 		messageId: v.id("messages"),
 		userId: v.id("users"),
 	},
-	handler: async (ctx, args): Promise<{ project?: string }> => {
+	handler: async (ctx, args) => {
 		const openai = new OpenAI({
 			baseURL: process.env.CONVEX_OPENAI_BASE_URL,
 			apiKey: process.env.CONVEX_OPENAI_API_KEY,
@@ -209,7 +209,5 @@ export const generateResponse = internalAction({
 				content: "Sorry, I encountered an error while processing your request.",
 			});
 		}
-
-		return { project: args.project?._id as string };
 	},
 });
