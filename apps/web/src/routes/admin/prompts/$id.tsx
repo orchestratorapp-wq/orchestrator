@@ -18,7 +18,15 @@ function EditPrompt() {
 
 	const typeOptions = ["daily_planner"];
 	const subTypeOptions = ["system"];
-	const modelOptions = ["gpt-5", "gpt-5-nano"];
+	const modelOptions = [
+		"gpt-5",
+		"gpt-5-nano",
+		"gpt-4.1",
+		"gpt-4.1-mini",
+		"gpt-4.1-nano",
+		"gpt-4o",
+		"gpt-4o-mini",
+	];
 
 	const [content, setContent] = useState("");
 	const [type, setType] = useState("");
