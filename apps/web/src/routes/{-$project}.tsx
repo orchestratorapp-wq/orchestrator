@@ -323,13 +323,7 @@ function ChatComponent() {
 				<div className="relative flex-1 font-semibold text-gray-900 text-sm/6 dark:text-white">
 					Dashboard
 				</div>
-				<button
-					type="button"
-					onClick={() => setNotesOpen(true)}
-					className="rounded-md px-3 py-2 font-semibold text-gray-700 text-sm hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/5"
-				>
-					Notes
-				</button>
+
 				<UserProfileDropdown user={user} signOut={signOut} />
 			</div>
 
@@ -367,6 +361,8 @@ function ChatComponent() {
 								<ChatInterface
 									projectId={projectPayload?.project?._id}
 									chatId={projectPayload?.chat?._id}
+									title={projectPayload?.project?.name}
+									onOpenNotes={() => setNotesOpen(true)}
 								/>
 							</div>
 						</div>

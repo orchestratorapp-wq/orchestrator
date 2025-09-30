@@ -12,11 +12,15 @@ import { Input } from "@/components/ui/input";
 interface ChatInterfaceProps {
 	chatId?: string;
 	projectId?: string;
+	title?: string;
+	onOpenNotes?: () => void;
 }
 
 export default function ChatInterface({
 	chatId,
 	projectId,
+	title,
+	onOpenNotes,
 }: ChatInterfaceProps) {
 	const token = useAuthToken();
 	const navigate = useNavigate();
@@ -61,8 +65,19 @@ export default function ChatInterface({
 	return (
 		<div className="flex h-full flex-col bg-white dark:bg-gray-900">
 			{/* Chat Header */}
-			<div className="border-b p-4">
-				<h2 className="font-semibold text-lg">Current Chat</h2>
+			<div className="flex items-center justify-between border-b p-4">
+				<h2 className="truncate font-semibold text-lg">
+					{title ?? "Current Chat"}
+				</h2>
+				{onOpenNotes ? (
+					<button
+						type="button"
+						onClick={onOpenNotes}
+						className="rounded-md px-3 py-2 font-semibold text-gray-700 text-sm hover:bg-gray-50 lg:hidden dark:text-gray-300 dark:hover:bg-white/5"
+					>
+						Notes
+					</button>
+				) : null}
 			</div>
 
 			{/* Messages */}
