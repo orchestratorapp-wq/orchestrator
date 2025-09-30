@@ -10,7 +10,7 @@ import { api } from "@orhcestrator/backend/convex/_generated/api";
 import type { Id } from "@orhcestrator/backend/convex/_generated/dataModel";
 import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
 import { useConvexAuth, useQuery } from "convex/react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ChatInterface from "@/components/chat-interface";
 import LexicalEditorComponent from "@/components/lexical-editor";
 import { UserProfileDropdown } from "@/components/UserProfileDropdown";
@@ -26,6 +26,8 @@ function ChatComponent() {
 	const { signIn, signOut } = useAuthActions();
 	const { isLoading, isAuthenticated } = useConvexAuth();
 	const [sidebarOpen, setSidebarOpen] = useState(false);
+	const [notesOpen, setNotesOpen] = useState(false);
+	const headerRef = useRef<HTMLDivElement>(null);
 
 	const user = useQuery(api.auth.loggedInUser, isAuthenticated ? {} : "skip");
 	const projects = useQuery(api.projects.list, isAuthenticated ? {} : "skip");
@@ -47,6 +49,30 @@ function ChatComponent() {
 			navigate({ to: "/{-$project}", params: { project: undefined } });
 		}
 	}, [projectPayload?.project, projectId, projectPayload, navigate]);
+
+	// Measure mobile sticky header height and expose as CSS variable
+	useEffect(() => {
+		if (typeof window === "undefined") return;
+		const el = headerRef.current;
+		if (!el) return;
+		const setVar = () => {
+			const h = el.getBoundingClientRect().height;
+			document.documentElement.style.setProperty("--mobile-header-h", `${h}px`);
+		};
+		setVar();
+		let ro: ResizeObserver | null = null;
+		if ("ResizeObserver" in window) {
+			ro = new ResizeObserver(setVar);
+			ro.observe(el);
+		}
+		window.addEventListener("resize", setVar);
+		window.addEventListener("orientationchange", setVar);
+		return () => {
+			if (ro) ro.disconnect();
+			window.removeEventListener("resize", setVar);
+			window.removeEventListener("orientationchange", setVar);
+		};
+	}, []);
 
 	return (
 		<div>
@@ -161,6 +187,45 @@ function ChatComponent() {
 					</DialogPanel>
 				</div>
 			</Dialog>
+			<Dialog
+				open={notesOpen}
+				onClose={setNotesOpen}
+				className="relative z-50 lg:hidden"
+			>
+				<DialogBackdrop
+					transition
+					className="fixed inset-0 bg-gray-900/80 transition-opacity duration-300 ease-linear data-closed:opacity-0"
+				/>
+				<div className="fixed inset-0 flex justify-end">
+					<DialogPanel
+						transition
+						className="relative ml-16 flex w-full max-w-md flex-1 transform transition duration-300 ease-in-out data-closed:translate-x-full"
+					>
+						<TransitionChild>
+							<div className="absolute top-0 right-full flex w-16 justify-center pt-5 duration-300 ease-in-out data-closed:opacity-0">
+								<button
+									type="button"
+									onClick={() => setNotesOpen(false)}
+									className="-m-2.5 p-2.5"
+								>
+									<span className="sr-only">Close notes</span>
+									<XMarkIcon aria-hidden="true" className="size-6 text-white" />
+								</button>
+							</div>
+						</TransitionChild>
+						<div className="relative flex grow flex-col overflow-y-auto border-gray-200 border-l bg-white px-4 pb-4 sm:px-6 dark:border-white/10 dark:bg-gray-900">
+							<div className="mb-4 hidden items-center justify-between sm:flex">
+								<h2 className="font-semibold text-base text-gray-900 dark:text-white">
+									Notes
+								</h2>
+							</div>
+							<LexicalEditorComponent
+								content={projectPayload?.project?.lexicalState?.trim?.()}
+							/>
+						</div>
+					</DialogPanel>
+				</div>
+			</Dialog>
 
 			{/* Static sidebar for desktop */}
 			<div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
@@ -246,7 +311,10 @@ function ChatComponent() {
 				</div>
 			</div>
 
-			<div className="sticky top-0 z-40 flex items-center gap-x-6 bg-white px-4 py-4 shadow-xs sm:px-6 lg:hidden dark:bg-gray-900 dark:shadow-none dark:before:pointer-events-none dark:before:absolute dark:before:inset-0 dark:before:border-white/10 dark:before:border-b dark:before:bg-black/10">
+			<div
+				ref={headerRef}
+				className="sticky top-0 z-40 flex items-center gap-x-6 bg-white px-4 py-4 shadow-xs sm:px-6 lg:hidden dark:bg-gray-900 dark:shadow-none dark:before:pointer-events-none dark:before:absolute dark:before:inset-0 dark:before:border-white/10 dark:before:border-b dark:before:bg-black/10"
+			>
 				<button
 					type="button"
 					onClick={() => setSidebarOpen(true)}
@@ -258,15 +326,22 @@ function ChatComponent() {
 				<div className="relative flex-1 font-semibold text-gray-900 text-sm/6 dark:text-white">
 					Dashboard
 				</div>
+				<button
+					type="button"
+					onClick={() => setNotesOpen(true)}
+					className="rounded-md px-3 py-2 font-semibold text-gray-700 text-sm hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/5"
+				>
+					Notes
+				</button>
 				<UserProfileDropdown user={user} signOut={signOut} />
 			</div>
 
 			{/* Main: keep w-72 sidebar, equal Chat and Lexical via simple flex */}
 			<main className="lg:pl-72">
-				<div className="relative h-screen w-full">
-					<div className="flex h-full">
+				<div className="relative h-[calc(100dvh-var(--mobile-header-h,56px))] w-full lg:h-screen">
+					<div className="flex h-full min-h-0">
 						{/* Chat column */}
-						<div className="relative flex-1 overflow-hidden pt-16 lg:pt-0">
+						<div className="relative flex h-full min-h-0 flex-1 flex-col overflow-hidden lg:pt-0">
 							{isAuthenticated ? null : isLoading ? (
 								<div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50">
 									<div className="flex w-96 max-w-full flex-col items-center rounded-lg border border-gray-200 bg-white p-8 shadow-lg dark:border-gray-700 dark:bg-gray-800">
@@ -291,10 +366,12 @@ function ChatComponent() {
 									</div>
 								</div>
 							)}
-							<ChatInterface
-								projectId={projectPayload?.project?._id}
-								chatId={projectPayload?.chat?._id}
-							/>
+							<div className="flex h-full min-h-0 flex-col pb-[env(safe-area-inset-bottom)]">
+								<ChatInterface
+									projectId={projectPayload?.project?._id}
+									chatId={projectPayload?.chat?._id}
+								/>
+							</div>
 						</div>
 
 						{/* Lexical column */}
