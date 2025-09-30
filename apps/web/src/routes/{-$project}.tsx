@@ -108,16 +108,13 @@ function ChatComponent() {
 						{/* Sidebar component, swap this element with another sidebar if you like */}
 						<div className="relative flex grow flex-col gap-y-5 overflow-y-auto bg-white px-6 pb-2 dark:bg-gray-900 dark:before:pointer-events-none dark:before:absolute dark:before:inset-0 dark:before:border-white/10 dark:before:border-r dark:before:bg-black/10">
 							<div className="relative flex h-16 shrink-0 items-center">
-								<img
-									alt="Your Company"
-									src="https://tailwindcss.com/plus-assets/img/logos/mark.svg?color=indigo&shade=600"
-									className="h-8 w-auto dark:hidden"
-								/>
-								<img
-									alt="Your Company"
-									src="https://tailwindcss.com/plus-assets/img/logos/mark.svg?color=indigo&shade=400"
-									className="not-dark:hidden h-8 w-auto"
-								/>
+								<a href="/">
+									<img
+										alt="Orchestrator"
+										src="/logo.svg"
+										className="h-8 w-auto"
+									/>
+								</a>
 							</div>
 							<nav className="relative flex flex-1 flex-col">
 								<ul className="flex flex-1 flex-col gap-y-7">
